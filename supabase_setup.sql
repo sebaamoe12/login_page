@@ -56,17 +56,21 @@ CREATE TABLE IF NOT EXISTS "Employee" (
   id TEXT PRIMARY KEY,
   "firstName" TEXT NOT NULL,
   "lastName" TEXT NOT NULL,
-  email TEXT,
   position TEXT NOT NULL,
   "baseSalary" DECIMAL(10,2) NOT NULL,
   status "EmployeeStatus" NOT NULL DEFAULT 'ACTIVE',
   "startDate" TIMESTAMPTZ NOT NULL,
-  phone TEXT,
-  "monthlyAdvanceLimit" DECIMAL(10,2) NOT NULL DEFAULT 50000,
-  "payDay" INTEGER NOT NULL DEFAULT 1,
   "companyId" TEXT NOT NULL REFERENCES "Company"(id),
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Migrate existing tables: drop unused columns, add position constraint
+ALTER TABLE "Employee" DROP COLUMN IF EXISTS email;
+ALTER TABLE "Employee" DROP COLUMN IF EXISTS phone;
+ALTER TABLE "Employee" DROP COLUMN IF EXISTS "monthlyAdvanceLimit";
+ALTER TABLE "Employee" DROP COLUMN IF EXISTS "payDay";
+ALTER TABLE "Employee" ADD CONSTRAINT IF NOT EXISTS "Employee_position_check"
+  CHECK (position IN ('vendeur', 'operateur'));
 
 CREATE TABLE IF NOT EXISTS "SalaryAdvance" (
   id TEXT PRIMARY KEY,
