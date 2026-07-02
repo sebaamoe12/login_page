@@ -211,7 +211,7 @@ ALTER TABLE "EmployeePayroll" ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   CREATE POLICY "Users can read their own company" ON "Company"
     FOR SELECT USING (id IN (
-      SELECT "companyId" FROM "User" WHERE id = auth.uid()
+      SELECT "companyId" FROM "User" WHERE id = auth.uid()::text
     ));
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;
@@ -219,7 +219,7 @@ END $$;
 DO $$ BEGIN
   CREATE POLICY "Users can read employees in their company" ON "Employee"
     FOR SELECT USING ("companyId" IN (
-      SELECT "companyId" FROM "User" WHERE id = auth.uid()
+      SELECT "companyId" FROM "User" WHERE id = auth.uid()::text
     ));
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;
@@ -227,7 +227,7 @@ END $$;
 DO $$ BEGIN
   CREATE POLICY "Users can read advances in their company" ON "SalaryAdvance"
     FOR SELECT USING ("companyId" IN (
-      SELECT "companyId" FROM "User" WHERE id = auth.uid()
+      SELECT "companyId" FROM "User" WHERE id = auth.uid()::text
     ));
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;
@@ -235,7 +235,7 @@ END $$;
 DO $$ BEGIN
   CREATE POLICY "Users can read payrolls in their company" ON "PayrollRun"
     FOR SELECT USING ("companyId" IN (
-      SELECT "companyId" FROM "User" WHERE id = auth.uid()
+      SELECT "companyId" FROM "User" WHERE id = auth.uid()::text
     ));
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;
