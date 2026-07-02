@@ -55,18 +55,28 @@ export function PayrollClient({ employees, payrolls: initial }: { employees: Emp
     return months;
   }, [selectedEmployee, currentMonth, currentYear]);
 
+  const getAvailableMonths = (emp: Employee | undefined, year: number) => {
+    if (!emp) return [];
+    const start = new Date(emp.startDate);
+    const sm = start.getMonth() + 1, sy = start.getFullYear();
+    let from = 1, to = 12;
+    if (year === sy && year === currentYear) { from = sm; to = currentMonth; }
+    else if (year === sy) { from = sm; }
+    else if (year === currentYear) { to = currentMonth; }
+    const months: number[] = [];
+    for (let m = from; m <= to; m++) months.push(m);
+    return months;
+  };
+
   // Reset month/year when employee changes
   const handleEmployeeChange = (id: string) => {
     setSelectedId(id);
     const emp = employees.find((e) => e.id === id);
     if (emp) {
       const start = new Date(emp.startDate);
-      // Default to the latest available month (current month) but not before start date
-      const candidateM = currentMonth;
-      const candidateY = currentYear;
-      if (candidateY > start.getFullYear() || (candidateY === start.getFullYear() && candidateM >= start.getMonth() + 1)) {
-        setSelectedMonth(candidateM);
-        setSelectedYear(candidateY);
+      if (currentYear > start.getFullYear() || (currentYear === start.getFullYear() && currentMonth >= start.getMonth() + 1)) {
+        setSelectedMonth(currentMonth);
+        setSelectedYear(currentYear);
       } else {
         setSelectedMonth(start.getMonth() + 1);
         setSelectedYear(start.getFullYear());
@@ -209,22 +219,21 @@ export function PayrollClient({ employees, payrolls: initial }: { employees: Emp
                 onChange={(e) => setSelectedMonth(Number(e.target.value))}
                 className="input"
               >
-                {MONTH_NAMES_FR.map((name, i) => {
-                  const m = i + 1;
-                  const disabled = selectedEmployee && (selectedYear < new Date(selectedEmployee.startDate).getFullYear() ||
-                    (selectedYear === new Date(selectedEmployee.startDate).getFullYear() && m < new Date(selectedEmployee.startDate).getMonth() + 1));
-                  return <option key={m} value={m} disabled={!!disabled}>{name}</option>;
-                })}
+                {getAvailableMonths(selectedEmployee, selectedYear).map((m) => (
+                  <option key={m} value={m}>{MONTH_NAMES_FR[m - 1]}</option>
+                ))}
               </select>
               <select
                 value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                onChange={(e) => { setSelectedYear(Number(e.target.value)); setSelectedMonth(getAvailableMonths(selectedEmployee, Number(e.target.value))[0] || 1); }}
                 className="input"
               >
                 {(() => {
                   const years: number[] = [];
-                  const startYear = selectedEmployee ? new Date(selectedEmployee.startDate).getFullYear() : currentYear;
-                  for (let y = startYear; y <= currentYear; y++) years.push(y);
+                  if (selectedEmployee) {
+                    const sy = new Date(selectedEmployee.startDate).getFullYear();
+                    for (let y = sy; y <= currentYear; y++) years.push(y);
+                  } else { years.push(currentYear); }
                   return years.map((y) => <option key={y} value={y}>{y}</option>);
                 })()}
               </select>
