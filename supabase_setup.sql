@@ -69,8 +69,11 @@ ALTER TABLE "Employee" DROP COLUMN IF EXISTS email;
 ALTER TABLE "Employee" DROP COLUMN IF EXISTS phone;
 ALTER TABLE "Employee" DROP COLUMN IF EXISTS "monthlyAdvanceLimit";
 ALTER TABLE "Employee" DROP COLUMN IF EXISTS "payDay";
-ALTER TABLE "Employee" ADD CONSTRAINT IF NOT EXISTS "Employee_position_check"
-  CHECK (position IN ('vendeur', 'operateur'));
+DO $$ BEGIN
+  ALTER TABLE "Employee" ADD CONSTRAINT "Employee_position_check"
+    CHECK (position IN ('vendeur', 'operateur'));
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS "SalaryAdvance" (
   id TEXT PRIMARY KEY,
