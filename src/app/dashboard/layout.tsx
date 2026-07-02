@@ -25,13 +25,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex h-full flex-1 overflow-hidden">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="fixed top-4 left-4 z-50 rounded-lg border border-zinc-700 bg-sidebar p-2 shadow-sm md:hidden"
+          className="fixed top-4 left-4 z-50 flex items-center justify-center rounded-lg border border-zinc-700 bg-sidebar p-2.5 shadow-sm md:hidden hover:bg-white/10 transition-colors"
           aria-label="Toggle sidebar"
         >
           <Menu className="h-5 w-5 text-white" />
         </button>
 
-        <aside className={`fixed inset-y-0 left-0 z-40 w-64 transform bg-sidebar transition-transform md:static md:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-sidebar transition-all duration-300 ease-in-out md:static md:translate-x-0 md:transition-none ${sidebarOpen ? "translate-x-0 shadow-xl" : "-translate-x-full"}`}>
           <div className="flex h-full flex-col">
             <div className="flex items-center gap-3 border-b border-white/10 px-6 py-5">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white">P</div>
@@ -65,10 +65,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </aside>
 
         {sidebarOpen && (
-          <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setSidebarOpen(false)} />
+          <div className="fixed inset-0 z-30 bg-black/60 md:hidden transition-opacity duration-300" onClick={() => setSidebarOpen(false)} />
         )}
 
-        <main className="flex-1 bg-surface overflow-y-auto px-6 py-8 md:px-10 md:py-10">
+        <main className="flex-1 bg-surface overflow-y-auto px-4 pt-16 pb-8 md:px-10 md:pt-10 md:pb-10">
           {children}
         </main>
       </div>
