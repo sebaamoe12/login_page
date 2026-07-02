@@ -7,13 +7,13 @@ interface Employee {
   id: string;
   firstName: string;
   lastName: string;
-  email: string | null;
   position: string;
   baseSalary: string;
+  startDate: string;
   status: string;
-  phone: string | null;
-  monthlyAdvanceLimit: string;
 }
+
+const positions = ["vendeur", "operateur"];
 
 export function EmployeeList({ employees }: { employees: Employee[] }) {
   const router = useRouter();
@@ -21,11 +21,9 @@ export function EmployeeList({ employees }: { employees: Employee[] }) {
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
-    email: "",
     position: "",
+    startDate: "",
     baseSalary: "",
-    phone: "",
-    monthlyAdvanceLimit: "50000",
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -43,13 +41,9 @@ export function EmployeeList({ employees }: { employees: Employee[] }) {
       id,
       firstName: form.firstName,
       lastName: form.lastName,
-      email: form.email || null,
       position: form.position,
       baseSalary: parseFloat(form.baseSalary),
-      phone: form.phone || null,
-      monthlyAdvanceLimit: parseFloat(form.monthlyAdvanceLimit),
-      startDate: new Date().toISOString(),
-      payDay: 1,
+      startDate: new Date(form.startDate).toISOString(),
       companyId: "seed-company-001",
     });
 
@@ -60,7 +54,7 @@ export function EmployeeList({ employees }: { employees: Employee[] }) {
     }
 
     setShowForm(false);
-    setForm({ firstName: "", lastName: "", email: "", position: "", baseSalary: "", phone: "", monthlyAdvanceLimit: "50000" });
+    setForm({ firstName: "", lastName: "", position: "", startDate: "", baseSalary: "" });
     setLoading(false);
     router.refresh();
   };
@@ -85,17 +79,35 @@ export function EmployeeList({ employees }: { employees: Employee[] }) {
       {showForm && (
         <form onSubmit={handleAdd} className="space-y-3 rounded-lg border border-zinc-200 bg-white p-4">
           <div className="grid gap-3 sm:grid-cols-2">
-            <input placeholder="First name" required value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} className="rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
-            <input placeholder="Last name" required value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} className="rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
-            <input placeholder="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
-            <input placeholder="Position" required value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} className="rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
-            <input placeholder="Base salary" type="number" required value={form.baseSalary} onChange={(e) => setForm({ ...form, baseSalary: e.target.value })} className="rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
-            <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
-            <input placeholder="Monthly advance limit" type="number" value={form.monthlyAdvanceLimit} onChange={(e) => setForm({ ...form, monthlyAdvanceLimit: e.target.value })} className="rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Prénom</label>
+              <input placeholder="Prénom" required value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Nom</label>
+              <input placeholder="Nom" required value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Poste</label>
+              <select required value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm">
+                <option value="">Sélectionner un poste</option>
+                {positions.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Date d&apos;embauche</label>
+              <input type="date" required value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">Salaire (DA)</label>
+              <input placeholder="Salaire" type="number" required value={form.baseSalary} onChange={(e) => setForm({ ...form, baseSalary: e.target.value })} className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm" />
+            </div>
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button type="submit" disabled={loading} className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50">
-            {loading ? "Adding..." : "Add Employee"}
+            {loading ? "Ajout..." : "Ajouter"}
           </button>
         </form>
       )}
@@ -104,10 +116,11 @@ export function EmployeeList({ employees }: { employees: Employee[] }) {
         <table className="w-full text-sm">
           <thead className="bg-zinc-50">
             <tr>
-              <th className="px-4 py-3 text-left font-medium text-zinc-500">Name</th>
-              <th className="px-4 py-3 text-left font-medium text-zinc-500">Position</th>
-              <th className="px-4 py-3 text-left font-medium text-zinc-500">Salary</th>
-              <th className="px-4 py-3 text-left font-medium text-zinc-500">Status</th>
+              <th className="px-4 py-3 text-left font-medium text-zinc-500">Nom</th>
+              <th className="px-4 py-3 text-left font-medium text-zinc-500">Poste</th>
+              <th className="px-4 py-3 text-left font-medium text-zinc-500">Date embauche</th>
+              <th className="px-4 py-3 text-left font-medium text-zinc-500">Salaire</th>
+              <th className="px-4 py-3 text-left font-medium text-zinc-500">Statut</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -116,15 +129,15 @@ export function EmployeeList({ employees }: { employees: Employee[] }) {
               <tr key={emp.id} className="hover:bg-zinc-50">
                 <td className="px-4 py-3">
                   <div className="font-medium">{emp.firstName} {emp.lastName}</div>
-                  {emp.email && <div className="text-xs text-zinc-400">{emp.email}</div>}
                 </td>
                 <td className="px-4 py-3 text-zinc-600">{emp.position}</td>
-                <td className="px-4 py-3 font-medium">{Number(emp.baseSalary).toLocaleString()} CFA</td>
+                <td className="px-4 py-3 text-zinc-600">{new Date(emp.startDate).toLocaleDateString()}</td>
+                <td className="px-4 py-3 font-medium">{Number(emp.baseSalary).toLocaleString()} DA</td>
                 <td className="px-4 py-3">
                   <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
                     emp.status === "ACTIVE" ? "bg-green-100 text-green-700" : "bg-zinc-100 text-zinc-500"
                   }`}>
-                    {emp.status}
+                    {emp.status === "ACTIVE" ? "Actif" : "Inactif"}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -132,15 +145,15 @@ export function EmployeeList({ employees }: { employees: Employee[] }) {
                     onClick={() => handleToggleStatus(emp)}
                     className="text-xs text-zinc-500 hover:text-zinc-900 underline"
                   >
-                    {emp.status === "ACTIVE" ? "Deactivate" : "Activate"}
+                    {emp.status === "ACTIVE" ? "Désactiver" : "Activer"}
                   </button>
                 </td>
               </tr>
             ))}
             {employees.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-sm text-zinc-400">
-                  No employees yet
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-zinc-400">
+                  Aucun employé pour le moment
                 </td>
               </tr>
             )}
