@@ -22,7 +22,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <ToastProvider>
-      <div className="flex min-h-full">
+      <div className="flex h-full flex-1 overflow-hidden">
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="fixed top-4 left-4 z-50 rounded-lg border border-zinc-700 bg-sidebar p-2 shadow-sm md:hidden"
@@ -68,7 +68,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setSidebarOpen(false)} />
         )}
 
-        <main className="flex-1 bg-surface px-6 py-8 md:px-10 md:py-10">
+        <main className="flex-1 bg-surface overflow-y-auto px-6 py-8 md:px-10 md:py-10">
           {children}
         </main>
       </div>
