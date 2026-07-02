@@ -143,8 +143,8 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
           ))}
         </div>
         <div className="relative ml-auto">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={m.adv.search} className="input pl-9 w-48" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={m.adv.search} className="input w-48" style={{ paddingLeft: "2.5rem" }} />
         </div>
       </div>
 

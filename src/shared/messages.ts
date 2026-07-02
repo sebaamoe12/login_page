@@ -60,7 +60,7 @@ export const m = {
   dash: {
     welcome: "Bon retour", totalEmployees: "Total employés", activeEmployees: "Employés actifs",
     pendingAdvances: "Avances en attente", currentPayroll: "Paie en cours",
-    notStarted: "Pas commencée", manageEmployees: "Gérer les employés",
+    totalPayments: "Total des paiements", notStarted: "Pas commencée", manageEmployees: "Gérer les employés",
     manageEmployeesDesc: "Ajouter, modifier ou consulter les employés",
     salaryAdvances: "Avances sur salaire", salaryAdvancesDesc: "Examiner et approuver les demandes",
     payrollRuns: "Gestion de la paie", payrollRunsDesc: "Créer et gérer les périodes de paie",

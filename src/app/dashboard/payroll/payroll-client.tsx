@@ -102,7 +102,7 @@ export function PayrollClient({ employees, payrolls: initial }: { employees: Emp
 
     const { data: advances } = await (await supabaseCall())
       .from("SalaryAdvance")
-      .select("amount")
+      .select("id, amount")
       .eq("employeeId", selectedId)
       .eq("companyId", "seed-company-001")
       .is("appliedInEmployeePayrollId", null)
@@ -111,10 +111,11 @@ export function PayrollClient({ employees, payrolls: initial }: { employees: Emp
     const totalAdvances = advances?.reduce((s, a) => s + Number(a.amount), 0) || 0;
     const netSalary = Math.max(Number(emp.baseSalary) - totalAdvances, 0);
 
+    const payrollId = crypto.randomUUID();
     const { error } = await (await supabaseCall())
       .from("EmployeePayroll")
       .insert({
-        id: crypto.randomUUID(),
+        id: payrollId,
         employeeId: selectedId,
         companyId: "seed-company-001",
         periodMonth: selectedMonth,
@@ -127,6 +128,16 @@ export function PayrollClient({ employees, payrolls: initial }: { employees: Emp
       });
 
     if (error) { toast(error.message, "error"); setLoading(false); return; }
+
+    // Link deducted advances to this payroll line
+    const advanceIds = advances?.map((a: { id: string }) => a.id) || [];
+    if (advanceIds.length > 0) {
+      await (await supabaseCall())
+        .from("SalaryAdvance")
+        .update({ appliedInEmployeePayrollId: payrollId })
+        .in("id", advanceIds);
+    }
+
     toast(m.pay.addLineSuccess);
     setLoading(false);
     router.refresh();
@@ -248,12 +259,13 @@ export function PayrollClient({ employees, payrolls: initial }: { employees: Emp
           </button>
         </div>
         <div className="relative mt-3">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={m.pay.search}
-            className="input pl-9"
+            className="input"
+            style={{ paddingLeft: "2.5rem" }}
           />
         </div>
       </div>
