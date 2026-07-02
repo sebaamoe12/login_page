@@ -2,13 +2,14 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Plus, CreditCard, Check } from "lucide-react";
+import { Search, Plus, CreditCard, Check, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { m } from "@/shared/messages";
 import { formatCurrency, MONTH_NAMES_FR } from "@/shared/constants";
 
-type Employee = { id: string; firstName: string; lastName: string; position: string; baseSalary: string; payDay: number };
+type Employee = { id: string; firstName: string; lastName: string; position: string; baseSalary: string; payDay: number; startDate: string };
 
 type PayrollRecord = {
   id: string; employeeId: string; periodMonth: number; periodYear: number;
@@ -19,19 +20,59 @@ type PayrollRecord = {
 export function PayrollClient({ employees, payrolls: initial }: { employees: Employee[]; payrolls: PayrollRecord[] }) {
   const router = useRouter();
   const { toast } = useToast();
+
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
   const [selectedId, setSelectedId] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   const [loading, setLoading] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<PayrollRecord | null>(null);
 
   const supabaseCall = async () => {
     const { createClient } = await import("@/lib/supabase/client");
     return createClient();
   };
 
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
+  const selectedEmployee = employees.find((e) => e.id === selectedId);
+
+  const availableMonths = useMemo(() => {
+    if (!selectedEmployee) return [];
+    const start = new Date(selectedEmployee.startDate);
+    const startM = start.getMonth() + 1;
+    const startY = start.getFullYear();
+    const months: { month: number; year: number; label: string }[] = [];
+    let y = startY, m = startM;
+    while (y < currentYear || (y === currentYear && m <= currentMonth)) {
+      months.push({ month: m, year: y, label: `${MONTH_NAMES_FR[m - 1]} ${y}` });
+      m++;
+      if (m > 12) { m = 1; y++; }
+    }
+    return months;
+  }, [selectedEmployee, currentMonth, currentYear]);
+
+  // Reset month/year when employee changes
+  const handleEmployeeChange = (id: string) => {
+    setSelectedId(id);
+    const emp = employees.find((e) => e.id === id);
+    if (emp) {
+      const start = new Date(emp.startDate);
+      // Default to the latest available month (current month) but not before start date
+      const candidateM = currentMonth;
+      const candidateY = currentYear;
+      if (candidateY > start.getFullYear() || (candidateY === start.getFullYear() && candidateM >= start.getMonth() + 1)) {
+        setSelectedMonth(candidateM);
+        setSelectedYear(candidateY);
+      } else {
+        setSelectedMonth(start.getMonth() + 1);
+        setSelectedYear(start.getFullYear());
+      }
+    }
+  };
 
   const filteredEmployees = employees.filter(
     (e) => `${e.firstName} ${e.lastName}`.toLowerCase().includes(search.toLowerCase())
@@ -40,18 +81,18 @@ export function PayrollClient({ employees, payrolls: initial }: { employees: Emp
   const pendingTotal = initial.filter((p) => p.status === "PENDING").reduce((s, p) => s + Number(p.netSalary), 0);
   const paidTotal = initial.filter((p) => p.status === "PAID").reduce((s, p) => s + Number(p.netSalary), 0);
 
-  const hasExistingLine = (empId: string) =>
-    initial.some((p) => p.employeeId === empId && p.periodMonth === currentMonth && p.periodYear === currentYear);
+  const hasExistingLine = (empId: string, month: number, year: number) =>
+    initial.some((p) => p.employeeId === empId && p.periodMonth === month && p.periodYear === year);
 
   const handleAddLine = async () => {
     if (!selectedId) return;
     setLoading(true);
-    const emp = employees.find((e) => e.id === selectedId);
+    const emp = selectedEmployee;
     if (!emp) return;
 
     const { data: advances } = await (await supabaseCall())
       .from("SalaryAdvance")
-      .select("amount, status")
+      .select("amount")
       .eq("employeeId", selectedId)
       .eq("companyId", "seed-company-001")
       .is("appliedInEmployeePayrollId", null)
@@ -66,8 +107,8 @@ export function PayrollClient({ employees, payrolls: initial }: { employees: Emp
         id: crypto.randomUUID(),
         employeeId: selectedId,
         companyId: "seed-company-001",
-        periodMonth: currentMonth,
-        periodYear: currentYear,
+        periodMonth: selectedMonth,
+        periodYear: selectedYear,
         baseSalary: emp.baseSalary,
         totalAdvances: totalAdvances.toString(),
         deductions: totalAdvances.toString(),
@@ -76,7 +117,6 @@ export function PayrollClient({ employees, payrolls: initial }: { employees: Emp
       });
 
     if (error) { toast(error.message, "error"); setLoading(false); return; }
-
     toast(m.pay.addLineSuccess);
     setLoading(false);
     router.refresh();
@@ -88,9 +128,19 @@ export function PayrollClient({ employees, payrolls: initial }: { employees: Emp
       .from("EmployeePayroll")
       .update({ status: "PAID" })
       .eq("id", recordId);
-
     toast(m.pay.confirmSuccess);
     setConfirmLoading(null);
+    router.refresh();
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    await (await supabaseCall())
+      .from("EmployeePayroll")
+      .delete()
+      .eq("id", deleteTarget.id);
+    setDeleteTarget(null);
+    toast(m.pay.deleteSuccess);
     router.refresh();
   };
 
@@ -136,29 +186,53 @@ export function PayrollClient({ employees, payrolls: initial }: { employees: Emp
             <label className="block text-xs font-medium text-zinc-500 mb-1">{m.pay.employee}</label>
             <select
               value={selectedId}
-              onChange={(e) => setSelectedId(e.target.value)}
+              onChange={(e) => handleEmployeeChange(e.target.value)}
               className="input"
             >
               <option value="">{m.pay.selectEmployee}</option>
-              {filteredEmployees.map((emp) => (
-                <option key={emp.id} value={emp.id} disabled={hasExistingLine(emp.id)}>
-                  {emp.firstName} {emp.lastName} — {emp.position}
-                  {hasExistingLine(emp.id) ? ` (${m.pay.lineExists})` : ""}
-                </option>
-              ))}
+              {filteredEmployees.map((emp) => {
+                const existing = hasExistingLine(emp.id, selectedMonth, selectedYear);
+                return (
+                  <option key={emp.id} value={emp.id} disabled={existing}>
+                    {emp.firstName} {emp.lastName} — {emp.position}
+                    {existing ? ` (${m.pay.lineExists})` : ""}
+                  </option>
+                );
+              })}
             </select>
           </div>
           <div className="flex-1 min-w-[200px]">
             <label className="block text-xs font-medium text-zinc-500 mb-1">{m.pay.period}</label>
-            <input
-              readOnly
-              value={`${MONTH_NAMES_FR[currentMonth - 1]} ${currentYear}`}
-              className="input bg-zinc-50 text-zinc-600"
-            />
+            <div className="flex gap-2">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                className="input"
+              >
+                {MONTH_NAMES_FR.map((name, i) => {
+                  const m = i + 1;
+                  const disabled = selectedEmployee && (selectedYear < new Date(selectedEmployee.startDate).getFullYear() ||
+                    (selectedYear === new Date(selectedEmployee.startDate).getFullYear() && m < new Date(selectedEmployee.startDate).getMonth() + 1));
+                  return <option key={m} value={m} disabled={!!disabled}>{name}</option>;
+                })}
+              </select>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+                className="input"
+              >
+                {(() => {
+                  const years: number[] = [];
+                  const startYear = selectedEmployee ? new Date(selectedEmployee.startDate).getFullYear() : currentYear;
+                  for (let y = startYear; y <= currentYear; y++) years.push(y);
+                  return years.map((y) => <option key={y} value={y}>{y}</option>);
+                })()}
+              </select>
+            </div>
           </div>
           <button
             onClick={handleAddLine}
-            disabled={!selectedId || hasExistingLine(selectedId) || loading}
+            disabled={!selectedId || hasExistingLine(selectedId, selectedMonth, selectedYear) || loading}
             className="btn-primary"
           >
             <Plus className="h-4 w-4" /> {loading ? m.pay.adding : m.pay.addPayrollLine}
@@ -209,15 +283,26 @@ export function PayrollClient({ employees, payrolls: initial }: { employees: Emp
                   <td className="px-4 py-3 font-semibold text-zinc-900">{formatCurrency(rec.netSalary)}</td>
                   <td className="px-4 py-3"><Badge status={rec.status}>{m.pay[rec.status.toLowerCase() as keyof typeof m.pay] || rec.status}</Badge></td>
                   <td className="px-4 py-3 text-right">
-                    {rec.status === "PENDING" && (
-                      <button
-                        onClick={() => handleConfirm(rec.id)}
-                        disabled={confirmLoading === rec.id}
-                        className="btn-sm flex items-center gap-1 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 cursor-pointer"
-                      >
-                        <Check className="h-3.5 w-3.5" /> {m.pay.confirmPayment}
-                      </button>
-                    )}
+                    <div className="flex gap-1 justify-end">
+                      {rec.status === "PENDING" && (
+                        <>
+                          <button
+                            onClick={() => handleConfirm(rec.id)}
+                            disabled={confirmLoading === rec.id}
+                            className="btn-sm flex items-center gap-1 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 cursor-pointer"
+                          >
+                            <Check className="h-3.5 w-3.5" /> {m.pay.confirmPayment}
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(rec)}
+                            className="btn-sm btn-ghost text-red-600"
+                            title={m.pay.deleteLine}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -230,6 +315,15 @@ export function PayrollClient({ employees, payrolls: initial }: { employees: Emp
           </tbody>
         </table>
       </div>
+
+      {/* Delete confirmation modal */}
+      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title={m.pay.deleteLine}>
+        <p className="text-sm text-zinc-600 mb-4">{m.pay.deleteConfirm}</p>
+        <div className="flex gap-3 justify-end">
+          <button onClick={() => setDeleteTarget(null)} className="btn-secondary">{m.common.cancel}</button>
+          <button onClick={handleDelete} className="btn-danger">{m.common.confirm}</button>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -10,7 +10,7 @@ export default async function PayrollPage() {
 
   const { data: employees } = await supabase
     .from("Employee")
-    .select("id, firstName, lastName, position, baseSalary, payDay")
+    .select("id, firstName, lastName, position, baseSalary, payDay, startDate")
     .eq("status", "ACTIVE");
 
   const { data: payrolls, error } = await supabase
