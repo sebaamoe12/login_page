@@ -60,15 +60,17 @@ CREATE TABLE IF NOT EXISTS "Employee" (
   "baseSalary" DECIMAL(10,2) NOT NULL,
   status "EmployeeStatus" NOT NULL DEFAULT 'ACTIVE',
   "startDate" TIMESTAMPTZ NOT NULL,
+  "monthlyAdvanceLimit" DECIMAL(10,2) NOT NULL DEFAULT 100000,
+  "payDay" INTEGER NOT NULL DEFAULT 1,
   "companyId" TEXT NOT NULL REFERENCES "Company"(id),
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Migrate existing tables: drop unused columns, add position constraint
+-- Migrate existing tables: drop unused columns, add missing columns, add position constraint
 ALTER TABLE "Employee" DROP COLUMN IF EXISTS email;
 ALTER TABLE "Employee" DROP COLUMN IF EXISTS phone;
-ALTER TABLE "Employee" DROP COLUMN IF EXISTS "monthlyAdvanceLimit";
-ALTER TABLE "Employee" DROP COLUMN IF EXISTS "payDay";
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "monthlyAdvanceLimit" DECIMAL(10,2) NOT NULL DEFAULT 100000;
+ALTER TABLE "Employee" ADD COLUMN IF NOT EXISTS "payDay" INTEGER NOT NULL DEFAULT 1;
 DO $$ BEGIN
   ALTER TABLE "Employee" ADD CONSTRAINT "Employee_position_check"
     CHECK (position IN ('vendeur', 'operateur'));
@@ -205,7 +207,7 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- 7. Enable Row Level Security and add basic policies
+-- 7. Enable Row Level Security and add policies
 ALTER TABLE "Company" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "User" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "Employee" ENABLE ROW LEVEL SECURITY;
@@ -214,35 +216,31 @@ ALTER TABLE "PayrollRun" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "PayrollRecord" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "EmployeePayroll" ENABLE ROW LEVEL SECURITY;
 
--- Users can read their own company's data
-DO $$ BEGIN
-  CREATE POLICY "Users can read their own company" ON "Company"
-    FOR SELECT USING (id IN (
-      SELECT "companyId" FROM "User" WHERE id = auth.uid()::text
-    ));
-EXCEPTION WHEN duplicate_object THEN null;
-END $$;
+-- Helper: company ID of the current user
+CREATE OR REPLACE FUNCTION public.user_company_id()
+RETURNS TEXT LANGUAGE SQL STABLE AS $$
+  SELECT "companyId" FROM "User" WHERE id = auth.uid()::text LIMIT 1;
+$$;
 
-DO $$ BEGIN
-  CREATE POLICY "Users can read employees in their company" ON "Employee"
-    FOR SELECT USING ("companyId" IN (
-      SELECT "companyId" FROM "User" WHERE id = auth.uid()::text
-    ));
-EXCEPTION WHEN duplicate_object THEN null;
-END $$;
+-- Company
+DO $$ BEGIN CREATE POLICY "company_select" ON "Company" FOR SELECT USING (id = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
-DO $$ BEGIN
-  CREATE POLICY "Users can read advances in their company" ON "SalaryAdvance"
-    FOR SELECT USING ("companyId" IN (
-      SELECT "companyId" FROM "User" WHERE id = auth.uid()::text
-    ));
-EXCEPTION WHEN duplicate_object THEN null;
-END $$;
+-- Employee
+DO $$ BEGIN CREATE POLICY "employee_select" ON "Employee" FOR SELECT USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "employee_insert" ON "Employee" FOR INSERT WITH CHECK ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "employee_update" ON "Employee" FOR UPDATE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "employee_delete" ON "Employee" FOR DELETE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
-DO $$ BEGIN
-  CREATE POLICY "Users can read payrolls in their company" ON "PayrollRun"
-    FOR SELECT USING ("companyId" IN (
-      SELECT "companyId" FROM "User" WHERE id = auth.uid()::text
-    ));
-EXCEPTION WHEN duplicate_object THEN null;
-END $$;
+-- SalaryAdvance
+DO $$ BEGIN CREATE POLICY "advance_select" ON "SalaryAdvance" FOR SELECT USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "advance_insert" ON "SalaryAdvance" FOR INSERT WITH CHECK ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "advance_update" ON "SalaryAdvance" FOR UPDATE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "advance_delete" ON "SalaryAdvance" FOR DELETE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- PayrollRun
+DO $$ BEGIN CREATE POLICY "payrollrun_select" ON "PayrollRun" FOR SELECT USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- EmployeePayroll
+DO $$ BEGIN CREATE POLICY "employeepayroll_select" ON "EmployeePayroll" FOR SELECT USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "employeepayroll_insert" ON "EmployeePayroll" FOR INSERT WITH CHECK ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "employeepayroll_update" ON "EmployeePayroll" FOR UPDATE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { AdvancesList } from "./advances-list";
+import { m } from "@/shared/messages";
+import { AdvancesClient } from "./advances-client";
 
 export default async function AdvancesPage() {
   const supabase = await createClient();
@@ -12,21 +13,24 @@ export default async function AdvancesPage() {
     .select("*, Employee(firstName, lastName)")
     .order("createdAt", { ascending: false });
 
+  const { data: employees } = await supabase
+    .from("Employee")
+    .select("id, firstName, lastName, baseSalary, monthlyAdvanceLimit")
+    .eq("status", "ACTIVE");
+
   if (error && error.code === "42P01") {
     return (
-      <div className="rounded-lg border border-amber-200 bg-amber-50 px-6 py-8 text-center">
-        <h2 className="text-lg font-semibold text-amber-800">Database not set up</h2>
-        <p className="mt-2 text-sm text-amber-700">
-          Run <code className="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs">supabase_setup.sql</code> in Supabase SQL Editor first.
-        </p>
+      <div className="card px-6 py-12 text-center">
+        <h2 className="text-lg font-semibold text-amber-800">{m.dash.notSetUp}</h2>
+        <p className="mt-2 text-sm text-amber-700">{m.dash.notSetUpDesc}</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Salary Advances</h1>
-      <AdvancesList advances={advances ?? []} />
+      <h1 className="text-2xl font-bold text-zinc-900">{m.adv.title}</h1>
+      <AdvancesClient advances={advances ?? []} employees={employees ?? []} />
     </div>
   );
 }
