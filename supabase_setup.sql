@@ -165,11 +165,11 @@ VALUES
   ('emp-005', 'Sofiane', 'Taleb', 'vendeur', 52000, 'INACTIVE', '2024-02-01', 85000, 5, 'seed-company-001')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO "SalaryAdvance" (id, amount, reason, date, type, status, "employeeId", "companyId")
+INSERT INTO "SalaryAdvance" (id, amount, reason, date, type, status, "employeeId", "companyId", "appliedInEmployeePayrollId")
 VALUES
-  ('adv-001', 10000, 'Urgent famille', NOW(), 'SALARY', 'PENDING', 'emp-001', 'seed-company-001'),
-  ('adv-002', 5000, 'Médical', NOW(), 'MEDICAL', 'APPROVED', 'emp-002', 'seed-company-001'),
-  ('adv-003', 8000, NULL, NOW(), 'SALARY', 'PAID', 'emp-003', 'seed-company-001')
+  ('adv-001', 10000, 'Urgent famille', NOW(), 'SALARY', 'PENDING', 'emp-001', 'seed-company-001', NULL),
+  ('adv-002', 5000, 'Médical', NOW(), 'MEDICAL', 'APPROVED', 'emp-002', 'seed-company-001', NULL),
+  ('adv-003', 8000, NULL, NOW(), 'SALARY', 'PAID', 'emp-003', 'seed-company-001', 'pay-003')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO "EmployeePayroll" (id, "employeeId", "companyId", "periodMonth", "periodYear", "baseSalary", "totalAdvances", "netSalary", deductions, status)
@@ -178,6 +178,10 @@ VALUES
   ('pay-002', 'emp-002', 'seed-company-001', EXTRACT(MONTH FROM NOW()), EXTRACT(YEAR FROM NOW()), 45000, 5000, 40000, 5000, 'PAID'),
   ('pay-003', 'emp-003', 'seed-company-001', EXTRACT(MONTH FROM NOW()), EXTRACT(YEAR FROM NOW()), 55000, 8000, 47000, 8000, 'PAID')
 ON CONFLICT (id) DO NOTHING;
+
+-- Link remaining unlinked advances to their payroll records (for manual runs)
+UPDATE "SalaryAdvance" SET "appliedInEmployeePayrollId" = 'pay-002'
+  WHERE id = 'adv-002' AND "appliedInEmployeePayrollId" IS NULL;
 
 -- 7. Trigger: auto-create User record when someone signs up via Supabase Auth
 CREATE OR REPLACE FUNCTION public.handle_new_user()

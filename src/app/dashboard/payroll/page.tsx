@@ -19,6 +19,19 @@ export default async function PayrollPage() {
     .order("periodYear", { ascending: false })
     .order("periodMonth", { ascending: false });
 
+  const { data: advanceLinks } = await supabase
+    .from("SalaryAdvance")
+    .select("id, amount, reason, appliedInEmployeePayrollId")
+    .not("appliedInEmployeePayrollId", "is", null);
+
+  // Group advances by payroll record
+  const advancesByPayroll: Record<string, { id: string; amount: string; reason: string | null }[]> = {};
+  advanceLinks?.forEach((a) => {
+    const key = a.appliedInEmployeePayrollId!;
+    if (!advancesByPayroll[key]) advancesByPayroll[key] = [];
+    advancesByPayroll[key].push({ id: a.id, amount: a.amount, reason: a.reason });
+  });
+
   if (error && error.code === "42P01") {
     return (
       <div className="card px-6 py-12 text-center">
@@ -34,6 +47,7 @@ export default async function PayrollPage() {
       <PayrollClient
         employees={employees ?? []}
         payrolls={payrolls ?? []}
+        advancesByPayroll={advancesByPayroll}
       />
     </div>
   );

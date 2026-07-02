@@ -33,27 +33,19 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
 
   const filtered = advances.filter((a) => filter === "ALL" || a.status === filter);
 
-  const employeeBalances = useMemo(() => {
-    const now = new Date();
-    return employees.map((emp) => {
-      const used = advances
-        .filter((a) => a.employeeId === emp.id && a.status !== "REJECTED")
-        .reduce((s, a) => s + Number(a.amount), 0);
-      const limit = Number(emp.monthlyAdvanceLimit);
-      return { ...emp, used, remaining: limit - used, limit };
-    });
-  }, [employees, advances]);
-
-  const monthlyUsage: Record<string, number> = {};
   const now = new Date();
-  advances
-    .filter((a) => {
-      const d = new Date(a.date);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && a.status !== "REJECTED";
-    })
-    .forEach((a) => {
-      monthlyUsage[a.employeeId] = (monthlyUsage[a.employeeId] || 0) + Number(a.amount);
+  const employeeBalances = useMemo(() => {
+    return employees.map((emp) => {
+      const monthlyUsed = advances
+        .filter((a) => {
+          const d = new Date(a.date);
+          return a.employeeId === emp.id && a.status !== "REJECTED" && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        })
+        .reduce((s, a) => s + Number(a.amount), 0);
+      const salary = Number(emp.baseSalary);
+      return { ...emp, used: monthlyUsed, remaining: Math.max(salary - monthlyUsed, 0), salary };
     });
+  }, [employees, advances, now]);
 
   const supabaseCall = async () => {
     const { createClient } = await import("@/lib/supabase/client");
@@ -119,12 +111,12 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
         {employeeBalances.map((emp) => (
           <div key={emp.id} className="card p-4 space-y-2">
             <p className="font-medium text-sm text-zinc-900">{emp.firstName} {emp.lastName}</p>
-            <p className="text-xs text-zinc-500">{m.adv.baseSalary}: {formatCurrency(emp.baseSalary)}</p>
+            <p className="text-xs text-zinc-500">{m.adv.baseSalary}: {formatCurrency(emp.salary)}</p>
             <div className="flex justify-between text-xs">
-              <span className="text-zinc-500">{m.adv.used}: {formatCurrency(emp.used)}</span>
-              <span className="text-zinc-500">{m.adv.remainingBalance}: {formatCurrency(Math.max(emp.remaining, 0))}</span>
+              <span className="text-red-500">{m.adv.used}: {formatCurrency(emp.used)}</span>
+              <span className="text-green-600">{m.adv.remainingBalance}: {formatCurrency(emp.remaining)}</span>
             </div>
-            <ProgressBar value={emp.used} max={emp.limit} />
+            <ProgressBar value={emp.used} max={emp.salary} />
           </div>
         ))}
       </div>

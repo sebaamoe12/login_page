@@ -17,7 +17,11 @@ type PayrollRecord = {
   Employee: { firstName: string; lastName: string; position: string; payDay: number } | null;
 };
 
-export function PayrollClient({ employees, payrolls: initial }: { employees: Employee[]; payrolls: PayrollRecord[] }) {
+export function PayrollClient({ employees, payrolls: initial, advancesByPayroll }: {
+  employees: Employee[];
+  payrolls: PayrollRecord[];
+  advancesByPayroll: Record<string, { id: string; amount: string; reason: string | null }[]>;
+}) {
   const router = useRouter();
   const { toast } = useToast();
 
@@ -297,9 +301,19 @@ export function PayrollClient({ employees, payrolls: initial }: { employees: Emp
                   </td>
                   <td className="px-4 py-3">{formatCurrency(rec.baseSalary)}</td>
                   <td className="px-4 py-3">
-                    {Number(rec.totalAdvances) > 0
-                      ? formatCurrency(rec.totalAdvances)
-                      : <span className="text-zinc-400">{m.pay.noAdvances}</span>}
+                    {(() => {
+                      const linked = advancesByPayroll?.[rec.id];
+                      if (!linked || linked.length === 0) return <span className="text-zinc-400">{m.pay.noAdvances}</span>;
+                      return (
+                        <div className="space-y-0.5">
+                          {linked.map((a) => (
+                            <div key={a.id} className="text-xs text-zinc-700">
+                              {formatCurrency(a.amount)}{a.reason ? ` — ${a.reason}` : ""}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3 font-semibold text-zinc-900">{formatCurrency(rec.netSalary)}</td>
                   <td className="px-4 py-3"><Badge status={rec.status}>{m.pay[rec.status.toLowerCase() as keyof typeof m.pay] || rec.status}</Badge></td>
