@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Pencil, Trash2 } from "lucide-react";
+import { Plus, X, Pencil, Trash2, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
@@ -43,6 +43,7 @@ export function SalesClient({
   const [loading, setLoading] = useState(false);
   const [statusModal, setStatusModal] = useState<{ id: string; status: string } | null>(null);
   const [deleteSale, setDeleteSale] = useState<any>(null);
+  const [infoSale, setInfoSale] = useState<any>(null);
 
   const supabaseCall = async () => {
     const { createClient } = await import("@/lib/supabase/client");
@@ -82,7 +83,7 @@ export function SalesClient({
       id: saleId, type: saleType, status,
       totalAmount: total,
       clientName: saleType === "DELIVERY" ? clientName : "",
-      clientPhone: saleType === "DELIVERY" ? clientPhone : "",
+      clientPhone: saleType !== "IN_STORE" ? clientPhone : "",
       deliveryAddress: saleType === "DELIVERY" ? deliveryAddress : "",
       tracking: saleType === "DELIVERY_COMPANY" ? tracking : "",
       companyId: "seed-company-001",
@@ -170,7 +171,10 @@ export function SalesClient({
                 <td className="px-4 py-3">
                   <div className="flex gap-1">
                     {(s.type === "DELIVERY" || s.type === "DELIVERY_COMPANY") && (
-                      <button onClick={() => setStatusModal({ id: s.id, status: s.status })} className="btn-ghost btn-sm"><Pencil className="h-3.5 w-3.5" /></button>
+                      <>
+                        <button onClick={() => setInfoSale(s)} className="btn-ghost btn-sm"><Info className="h-3.5 w-3.5" /></button>
+                        <button onClick={() => setStatusModal({ id: s.id, status: s.status })} className="btn-ghost btn-sm"><Pencil className="h-3.5 w-3.5" /></button>
+                      </>
                     )}
                     <button onClick={() => setDeleteSale(s)} className="btn-ghost btn-sm text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
@@ -214,9 +218,15 @@ export function SalesClient({
             )}
 
             {saleType === "DELIVERY_COMPANY" && (
-              <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.tracking}</label>
-                <input className="input" value={tracking} onChange={(e) => setTracking(e.target.value)} placeholder="Ex: YLD-123456" />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.tracking}</label>
+                  <input className="input" value={tracking} onChange={(e) => setTracking(e.target.value)} placeholder="Ex: YLD-123456" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.clientPhone}</label>
+                  <input className="input" value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} />
+                </div>
               </div>
             )}
 
@@ -274,6 +284,28 @@ export function SalesClient({
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button onClick={() => setStatusModal(null)} className="btn-secondary">{m.common.cancel}</button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {infoSale && (
+        <Modal open={true} title="Détails client" onClose={() => setInfoSale(null)}>
+          <div className="space-y-3">
+            {infoSale.type === "DELIVERY" ? (
+              <>
+                <div><label className="text-xs font-medium text-zinc-500 uppercase">{m.pour.clientName}</label><p className="text-sm text-zinc-900 mt-0.5">{infoSale.clientName || "—"}</p></div>
+                <div><label className="text-xs font-medium text-zinc-500 uppercase">{m.pour.clientPhone}</label><p className="text-sm text-zinc-900 mt-0.5">{infoSale.clientPhone || "—"}</p></div>
+                <div><label className="text-xs font-medium text-zinc-500 uppercase">{m.pour.deliveryAddress}</label><p className="text-sm text-zinc-900 mt-0.5">{infoSale.deliveryAddress || "—"}</p></div>
+              </>
+            ) : (
+              <>
+                <div><label className="text-xs font-medium text-zinc-500 uppercase">{m.pour.tracking}</label><p className="text-sm text-zinc-900 mt-0.5">{infoSale.tracking || "—"}</p></div>
+                <div><label className="text-xs font-medium text-zinc-500 uppercase">{m.pour.clientPhone}</label><p className="text-sm text-zinc-900 mt-0.5">{infoSale.clientPhone || "—"}</p></div>
+              </>
+            )}
+            <div className="flex justify-end pt-2">
+              <button onClick={() => setInfoSale(null)} className="btn-secondary">{m.common.close}</button>
             </div>
           </div>
         </Modal>
