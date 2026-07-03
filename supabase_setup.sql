@@ -108,38 +108,7 @@ CREATE TABLE IF NOT EXISTS "EmployeePayroll" (
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Legacy tables from NextAuth.js (unused with Supabase auth, kept for migration safety)
-CREATE TABLE IF NOT EXISTS "Account" (
-  id TEXT PRIMARY KEY,
-  "userId" TEXT NOT NULL REFERENCES "User"(id),
-  type TEXT NOT NULL,
-  provider TEXT NOT NULL,
-  "providerAccountId" TEXT NOT NULL,
-  refresh_token TEXT,
-  access_token TEXT,
-  expires_at INTEGER,
-  token_type TEXT,
-  scope TEXT,
-  id_token TEXT,
-  session_state TEXT
-);
-
-CREATE TABLE IF NOT EXISTS "Session" (
-  id TEXT PRIMARY KEY,
-  "sessionToken" TEXT NOT NULL UNIQUE,
-  "userId" TEXT NOT NULL REFERENCES "User"(id),
-  expires TIMESTAMPTZ NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS "VerificationToken" (
-  identifier TEXT NOT NULL,
-  token TEXT NOT NULL UNIQUE,
-  expires TIMESTAMPTZ NOT NULL
-);
-
 -- 3. Indexes
-CREATE UNIQUE INDEX IF NOT EXISTS "Account_provider_providerAccountId_key" ON "Account"(provider, "providerAccountId");
-CREATE UNIQUE INDEX IF NOT EXISTS "VerificationToken_identifier_token_key" ON "VerificationToken"(identifier, token);
 CREATE UNIQUE INDEX IF NOT EXISTS "EmployeePayroll_employeeId_periodMonth_periodYear_key" ON "EmployeePayroll"("employeeId", "periodMonth", "periodYear");
 
 -- 4. Foreign key for SalaryAdvance → EmployeePayroll (when advance is applied to payroll)
