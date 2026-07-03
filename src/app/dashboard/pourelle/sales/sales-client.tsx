@@ -135,6 +135,25 @@ export function SalesClient({
           }
         }
       }
+    } else if (statusModal.status === "DELIVERED") {
+      const { data: saleItems } = await supabase
+        .from("PourelleSaleItem")
+        .select("productId, quantity")
+        .eq("saleId", statusModal.id);
+      if (saleItems) {
+        for (const item of saleItems) {
+          const { data: current } = await supabase
+            .from("PourelleProduct")
+            .select("stock")
+            .eq("id", item.productId)
+            .single();
+          if (current) {
+            await supabase.from("PourelleProduct").update({
+              stock: current.stock + item.quantity,
+            }).eq("id", item.productId);
+          }
+        }
+      }
     }
     setStatusModal(null);
     toast(m.pour.editSuccess);
@@ -144,6 +163,27 @@ export function SalesClient({
   const handleDeleteSale = async () => {
     if (!deleteSale) return;
     const supabase = await supabaseCall();
+    const shouldRestore = deleteSale.type === "IN_STORE" || deleteSale.status === "DELIVERED";
+    if (shouldRestore) {
+      const { data: saleItems } = await supabase
+        .from("PourelleSaleItem")
+        .select("productId, quantity")
+        .eq("saleId", deleteSale.id);
+      if (saleItems) {
+        for (const item of saleItems) {
+          const { data: current } = await supabase
+            .from("PourelleProduct")
+            .select("stock")
+            .eq("id", item.productId)
+            .single();
+          if (current) {
+            await supabase.from("PourelleProduct").update({
+              stock: current.stock + item.quantity,
+            }).eq("id", item.productId);
+          }
+        }
+      }
+    }
     await supabase.from("PourelleSaleItem").delete().eq("saleId", deleteSale.id);
     await supabase.from("PourelleSale").delete().eq("id", deleteSale.id);
     setDeleteSale(null);
