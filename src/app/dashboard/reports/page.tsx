@@ -51,8 +51,10 @@ export default async function ReportsPage() {
   // ── Pourelle section ──
   const { data: allSales } = await supabase
     .from("PourelleSale")
-    .select("totalAmount, createdAt")
+    .select("id, totalAmount, createdAt")
     .in("status", ["COMPLETED", "DELIVERED"]);
+
+  const completedSaleIds = allSales?.map((s) => s.id) || [];
 
   const totalSalesAmount = allSales?.reduce((s, sale) => s + Number(sale.totalAmount), 0) || 0;
   const totalSalesCount = allSales?.length || 0;
@@ -76,7 +78,8 @@ export default async function ReportsPage() {
   // Top products
   const { data: saleItems } = await supabase
     .from("PourelleSaleItem")
-    .select("productId, quantity, unitPrice, Product:productId(sku, purchasePrice)");
+    .select("productId, quantity, unitPrice, Product:productId(sku, purchasePrice)")
+    .in("saleId", completedSaleIds);
 
   const byProduct = new Map<string, { name: string; sku: string; qty: number; revenue: number; profit: number }>();
   saleItems?.forEach((item) => {
