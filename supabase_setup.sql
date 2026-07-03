@@ -2,6 +2,7 @@
 -- It is idempotent — safe to run multiple times.
 
 -- 1. Enums
+/*
 DO $$ BEGIN
   CREATE TYPE "Role" AS ENUM ('ADMIN', 'MANAGER', 'VIEWER');
 EXCEPTION WHEN duplicate_object THEN null;
@@ -338,3 +339,4 @@ DO $$ BEGIN CREATE POLICY "pourellesaleitem_select" ON "PourelleSaleItem" FOR SE
 DO $$ BEGIN CREATE POLICY "pourellesaleitem_insert" ON "PourelleSaleItem" FOR INSERT WITH CHECK ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE POLICY "pourellesaleitem_update" ON "PourelleSaleItem" FOR UPDATE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE POLICY "pourellesaleitem_delete" ON "PourelleSaleItem" FOR DELETE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+*/

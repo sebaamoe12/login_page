@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Users, Wallet, DollarSign, Store, Factory, ShoppingBag, Banknote, AlertTriangle } from "lucide-react";
+import { Users, Wallet, DollarSign, Store, Factory, ShoppingBag, Banknote, AlertTriangle, BarChart3 } from "lucide-react";
 import { m } from "@/shared/messages";
 import { formatCurrency, MONTH_NAMES_SHORT } from "@/shared/constants";
 import { EvolutionChart } from "./evolution-chart";
@@ -133,7 +133,7 @@ export default async function DashboardPage() {
 
       <div>
         <h2 className="text-lg font-semibold text-zinc-900 mb-4">{m.dash.entities}</h2>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <a href="/dashboard/pourelle" className="card p-5 transition-colors hover:border-indigo-200 hover:shadow-md">
             <div className="flex items-center gap-3 mb-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600"><Store className="h-5 w-5" /></div>
@@ -165,6 +165,13 @@ export default async function DashboardPage() {
               <div><span className="text-zinc-400">Avances</span><p className="font-medium text-amber-600">{pendingAdvances}</p></div>
               <div><span className="text-zinc-400">Actifs</span><p className="font-medium text-zinc-900">{activeCount}</p></div>
             </div>
+          </a>
+          <a href="/dashboard/reports" className="card p-5 transition-colors hover:border-indigo-200 hover:shadow-md">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 text-purple-600"><BarChart3 className="h-5 w-5" /></div>
+              <div><h3 className="font-semibold text-zinc-900">📊 Rapports</h3><p className="text-sm text-zinc-500">Performance globale</p></div>
+            </div>
+            <p className="text-sm text-zinc-400">Ventes, paie, analyses</p>
           </a>
         </div>
       </div>

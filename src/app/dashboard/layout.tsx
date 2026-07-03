@@ -36,9 +36,9 @@ const navItems: NavItem[] = [
       { href: "/dashboard/employees", label: m.nav.employees, icon: Users },
       { href: "/dashboard/payroll", label: m.nav.payroll, icon: Wallet },
       { href: "/dashboard/advances", label: m.nav.advances, icon: Banknote },
-      { href: "/dashboard/reports", label: m.nav.reports, icon: BarChart3 },
     ],
   },
+  { href: "/dashboard/reports", label: m.nav.reports, icon: BarChart3 },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
