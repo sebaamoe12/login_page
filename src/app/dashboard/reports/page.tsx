@@ -52,7 +52,7 @@ export default async function ReportsPage() {
   const { data: allSales } = await supabase
     .from("PourelleSale")
     .select("totalAmount, createdAt")
-    .eq("status", "COMPLETED");
+    .in("status", ["COMPLETED", "DELIVERED"]);
 
   const totalSalesAmount = allSales?.reduce((s, sale) => s + Number(sale.totalAmount), 0) || 0;
   const totalSalesCount = allSales?.length || 0;

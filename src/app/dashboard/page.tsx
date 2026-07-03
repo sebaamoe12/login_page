@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Users, Wallet, DollarSign, Store, Factory, ShoppingBag, Banknote, AlertTriangle, BarChart3 } from "lucide-react";
+import { Users, Wallet, DollarSign, Store, Factory, ShoppingBag, Banknote, AlertTriangle, BarChart3, Truck } from "lucide-react";
 import { m } from "@/shared/messages";
 import { formatCurrency, MONTH_NAMES_SHORT } from "@/shared/constants";
 import { EvolutionChart } from "./evolution-chart";
@@ -30,6 +30,12 @@ export default async function DashboardPage() {
 
   const totalSalesAmount = allSales?.reduce((s, sale) => s + Number(sale.totalAmount), 0) || 0;
   const totalSalesCount = allSales?.length || 0;
+
+  const { data: deliveredSales } = await supabase
+    .from("PourelleSale")
+    .select("id")
+    .eq("status", "DELIVERED");
+  const deliveredCount = deliveredSales?.length || 0;
 
   // Pourelle products
   const { data: products } = await supabase
@@ -92,10 +98,10 @@ export default async function DashboardPage() {
         </div>
         <div className="card p-5">
           <div className="flex items-center gap-2 text-emerald-600">
-            <DollarSign className="h-4 w-4" />
-            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">{m.dash.paidEmployees}</p>
+            <Truck className="h-4 w-4" />
+            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">{m.dash.deliveredCount}</p>
           </div>
-          <p className="mt-2 text-3xl font-bold text-zinc-900">{paidCount}</p>
+          <p className="mt-2 text-3xl font-bold text-zinc-900">{deliveredCount}</p>
         </div>
         <div className="card p-5">
           <div className="flex items-center gap-2 text-blue-600">

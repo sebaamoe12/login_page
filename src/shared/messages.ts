@@ -33,6 +33,7 @@ export const m = {
     newPurchasePrice: "Nouveau PA (optionnel)",
     newSellingPrice: "Nouveau PV (optionnel)",
     stockAdded: "Stock mis à jour",
+    soldItems: "Articles vendus", details: "Détails de la vente",
     // Reports
     rep: {
       title: "Rapports Pourelle", totalSales: "Total des ventes", salesCount: "Nombre de ventes",
@@ -103,7 +104,7 @@ export const m = {
   },
   // Dashboard
   dash: {
-    welcome: "Bon retour", totalUnpaid: "Total non payé", paidEmployees: "Employés payés",
+    welcome: "Bon retour", totalUnpaid: "Total non payé", deliveredCount: "Livraisons effectuées",
     activeEmployees: "Employés actifs", salesAmount: "Montant des ventes", salesCount: "Ventes",
     salesEvolution: "Évolution des ventes", payrollEvolution: "Évolution de la paie",
     notStarted: "Pas commencée", manageEmployees: "Gérer les employés",

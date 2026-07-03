@@ -131,7 +131,11 @@ export function ProductsClient({ products, suppliers }: { products: PourelleProd
                 <td className="px-4 py-3 text-zinc-600">{formatCurrency(p.purchasePrice)}</td>
                 <td className="px-4 py-3 text-zinc-600">{formatCurrency(p.sellingPrice)}</td>
                 <td className="px-4 py-3">
-                  <span className={`font-medium ${p.stock < 5 ? "text-red-600" : "text-zinc-900"}`}>{p.stock}</span>
+                  {p.stock === 0 ? (
+                    <span className="font-bold text-red-600">Rupture</span>
+                  ) : (
+                    <span className={`font-medium ${p.stock < 5 ? "text-red-600" : "text-zinc-900"}`}>{p.stock}</span>
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1">

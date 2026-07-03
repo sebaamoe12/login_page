@@ -98,10 +98,12 @@ export function SalesClient({
     );
     if (itemsError) { toast(itemsError.message, "error"); setLoading(false); return; }
 
-    for (const l of lines) {
-      await supabase.from("PourelleProduct").update({
-        stock: (products.find((p) => p.id === l.productId)?.stock || 0) - l.quantity,
-      }).eq("id", l.productId);
+    if (saleType === "IN_STORE") {
+      for (const l of lines) {
+        await supabase.from("PourelleProduct").update({
+          stock: (products.find((p) => p.id === l.productId)?.stock || 0) - l.quantity,
+        }).eq("id", l.productId);
+      }
     }
 
     setShowForm(false); resetForm(); setLoading(false);
@@ -114,6 +116,26 @@ export function SalesClient({
     const supabase = await supabaseCall();
     const { error } = await supabase.from("PourelleSale").update({ status: newStatus }).eq("id", statusModal.id);
     if (error) { toast(error.message, "error"); return; }
+    if (newStatus === "DELIVERED") {
+      const { data: saleItems } = await supabase
+        .from("PourelleSaleItem")
+        .select("productId, quantity")
+        .eq("saleId", statusModal.id);
+      if (saleItems) {
+        for (const item of saleItems) {
+          const { data: current } = await supabase
+            .from("PourelleProduct")
+            .select("stock")
+            .eq("id", item.productId)
+            .single();
+          if (current) {
+            await supabase.from("PourelleProduct").update({
+              stock: current.stock - item.quantity,
+            }).eq("id", item.productId);
+          }
+        }
+      }
+    }
     setStatusModal(null);
     toast(m.pour.editSuccess);
     router.refresh();
@@ -170,11 +192,9 @@ export function SalesClient({
                 <td className="px-4 py-3 text-zinc-600">{new Date(s.createdAt).toLocaleDateString("fr-DZ")}</td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1">
+                    <button onClick={() => setInfoSale(s)} className="btn-ghost btn-sm"><Info className="h-3.5 w-3.5" /></button>
                     {(s.type === "DELIVERY" || s.type === "DELIVERY_COMPANY") && (
-                      <>
-                        <button onClick={() => setInfoSale(s)} className="btn-ghost btn-sm"><Info className="h-3.5 w-3.5" /></button>
-                        <button onClick={() => setStatusModal({ id: s.id, status: s.status })} className="btn-ghost btn-sm"><Pencil className="h-3.5 w-3.5" /></button>
-                      </>
+                      <button onClick={() => setStatusModal({ id: s.id, status: s.status })} className="btn-ghost btn-sm"><Pencil className="h-3.5 w-3.5" /></button>
                     )}
                     <button onClick={() => setDeleteSale(s)} className="btn-ghost btn-sm text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
@@ -290,19 +310,49 @@ export function SalesClient({
       )}
 
       {infoSale && (
-        <Modal open={true} title="Détails client" onClose={() => setInfoSale(null)}>
-          <div className="space-y-3">
-            {infoSale.type === "DELIVERY" ? (
-              <>
-                <div><label className="text-xs font-medium text-zinc-500 uppercase">{m.pour.clientName}</label><p className="text-sm text-zinc-900 mt-0.5">{infoSale.clientName || "—"}</p></div>
-                <div><label className="text-xs font-medium text-zinc-500 uppercase">{m.pour.clientPhone}</label><p className="text-sm text-zinc-900 mt-0.5">{infoSale.clientPhone || "—"}</p></div>
-                <div><label className="text-xs font-medium text-zinc-500 uppercase">{m.pour.deliveryAddress}</label><p className="text-sm text-zinc-900 mt-0.5">{infoSale.deliveryAddress || "—"}</p></div>
-              </>
-            ) : (
-              <>
-                <div><label className="text-xs font-medium text-zinc-500 uppercase">{m.pour.tracking}</label><p className="text-sm text-zinc-900 mt-0.5">{infoSale.tracking || "—"}</p></div>
-                <div><label className="text-xs font-medium text-zinc-500 uppercase">{m.pour.clientPhone}</label><p className="text-sm text-zinc-900 mt-0.5">{infoSale.clientPhone || "—"}</p></div>
-              </>
+        <Modal open={true} title={m.pour.details} onClose={() => setInfoSale(null)}>
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-medium uppercase text-zinc-500 mb-2">{m.pour.soldItems}</p>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-200 text-left text-zinc-500">
+                    <th className="pb-1.5 pr-2 font-medium">{m.pour.product}</th>
+                    <th className="pb-1.5 px-2 font-medium">{m.pour.qty}</th>
+                    <th className="pb-1.5 px-2 font-medium">{m.pour.unitPrice}</th>
+                    <th className="pb-1.5 pl-2 font-medium text-right">{m.pour.total}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(itemsBySaleId[infoSale.id] || []).map((item: any) => {
+                    const product = products.find((p) => p.id === item.productId);
+                    return (
+                      <tr key={item.id} className="border-b border-zinc-100">
+                        <td className="py-1.5 pr-2 font-medium text-zinc-900">{product?.sku || "—"}</td>
+                        <td className="py-1.5 px-2 text-zinc-600">{item.quantity}</td>
+                        <td className="py-1.5 px-2 text-zinc-600">{formatCurrency(item.unitPrice)}</td>
+                        <td className="py-1.5 pl-2 text-right text-zinc-900">{formatCurrency(item.quantity * item.unitPrice)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {infoSale.type !== "IN_STORE" && (
+              <div className="border-t border-zinc-200 pt-3 space-y-2">
+                {infoSale.type === "DELIVERY" ? (
+                  <>
+                    <div><label className="text-xs font-medium text-zinc-500 uppercase">{m.pour.clientName}</label><p className="text-sm text-zinc-900 mt-0.5">{infoSale.clientName || "—"}</p></div>
+                    <div><label className="text-xs font-medium text-zinc-500 uppercase">{m.pour.clientPhone}</label><p className="text-sm text-zinc-900 mt-0.5">{infoSale.clientPhone || "—"}</p></div>
+                    <div><label className="text-xs font-medium text-zinc-500 uppercase">{m.pour.deliveryAddress}</label><p className="text-sm text-zinc-900 mt-0.5">{infoSale.deliveryAddress || "—"}</p></div>
+                  </>
+                ) : (
+                  <>
+                    <div><label className="text-xs font-medium text-zinc-500 uppercase">{m.pour.tracking}</label><p className="text-sm text-zinc-900 mt-0.5">{infoSale.tracking || "—"}</p></div>
+                    <div><label className="text-xs font-medium text-zinc-500 uppercase">{m.pour.clientPhone}</label><p className="text-sm text-zinc-900 mt-0.5">{infoSale.clientPhone || "—"}</p></div>
+                  </>
+                )}
+              </div>
             )}
             <div className="flex justify-end pt-2">
               <button onClick={() => setInfoSale(null)} className="btn-secondary">{m.common.close}</button>
