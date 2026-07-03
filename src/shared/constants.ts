@@ -18,6 +18,14 @@ export type PourelleSaleStatus = (typeof POURELLE_SALE_STATUSES)[number];
 
 export const DELIVERY_STATUSES = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"] as const;
 
+export const FABREX_CATEGORIES = ["Automobile", "Électroménager", "Emballage", "Jouet", "Mobilier", "Construction", "Autres"] as const;
+
+export const FABREX_MACHINE_STATUSES = ["ACTIVE", "MAINTENANCE", "INACTIVE"] as const;
+
+export const FABREX_PRODUCTION_STATUSES = ["PLANNED", "IN_PROGRESS", "COMPLETED", "CANCELLED"] as const;
+
+export const FABREX_SALE_STATUSES = ["COMPLETED", "CANCELLED"] as const;
+
 export const MONTH_NAMES_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 export const MONTH_NAMES_SHORT = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
 

@@ -42,6 +42,14 @@ export default async function DashboardPage() {
     .from("PourelleProduct")
     .select("id, stock");
 
+  // Fabrex stats
+  const { count: fabrexProductCount } = await supabase.from("FabrexProduct").select("*", { count: "exact", head: true });
+  const { count: fabrexMachineCount } = await supabase.from("FabrexMachine").select("*", { count: "exact", head: true }).eq("status", "ACTIVE");
+  const { count: fabrexProdOrderCount } = await supabase.from("FabrexProductionOrder").select("*", { count: "exact", head: true });
+  const { count: fabrexInProgressCount } = await supabase.from("FabrexProductionOrder").select("*", { count: "exact", head: true }).eq("status", "IN_PROGRESS");
+  const { data: fabrexSales } = await supabase.from("FabrexSale").select("totalAmount").eq("status", "COMPLETED");
+  const fabrexSalesAmount = fabrexSales?.reduce((s, sale) => s + Number(sale.totalAmount), 0) || 0;
+
   const lowStockCount = products?.filter((p) => p.stock < 5).length || 0;
   const totalProducts = products?.length || 0;
 
@@ -158,7 +166,12 @@ export default async function DashboardPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-100 text-cyan-600"><Factory className="h-5 w-5" /></div>
               <div><h3 className="font-semibold text-zinc-900">🏭 Fabrex</h3><p className="text-sm text-zinc-500">Injection plastique</p></div>
             </div>
-            <p className="text-sm text-zinc-400">Module en cours de développement</p>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div><span className="text-zinc-400">CA total</span><p className="font-medium text-zinc-900">{formatCurrency(fabrexSalesAmount)}</p></div>
+              <div><span className="text-zinc-400">Produits</span><p className="font-medium text-zinc-900">{fabrexProductCount} articles</p></div>
+              <div><span className="text-zinc-400">Machines</span><p className="font-medium text-zinc-900">{fabrexMachineCount} actives</p></div>
+              {fabrexInProgressCount ? <div><span className="text-amber-600">{fabrexInProgressCount} en production</span></div> : <div><span className="text-zinc-400">OP</span><p className="font-medium text-zinc-900">{fabrexProdOrderCount}</p></div>}
+            </div>
           </a>
           <a href="/dashboard/payroll" className="card p-5 transition-colors hover:border-indigo-200 hover:shadow-md">
             <div className="flex items-center gap-3 mb-3">

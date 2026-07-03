@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { LayoutDashboard, Users, Wallet, Banknote, BarChart3, Menu, LogOut, ChevronDown, Store, Shirt, Building2, Receipt, Factory } from "lucide-react";
+import { LayoutDashboard, Users, Wallet, Banknote, BarChart3, Menu, LogOut, ChevronDown, Store, Shirt, Building2, Receipt, Factory, Package, Box, UserCircle, Cpu, ClipboardList } from "lucide-react";
 import { ToastProvider } from "@/components/ui/toast";
 import SignOutButton from "./sign-out-button";
 import { m } from "@/shared/messages";
@@ -27,7 +27,14 @@ const navItems: NavItem[] = [
   },
   {
     label: "Fabrex", icon: Factory, children: [
-      { href: "/dashboard/fabrex", label: m.pour.hub, icon: LayoutDashboard },
+      { href: "/dashboard/fabrex", label: m.fabr.hub, icon: LayoutDashboard },
+      { href: "/dashboard/fabrex/products", label: m.fabr.products, icon: Package },
+      { href: "/dashboard/fabrex/raw-materials", label: m.fabr.rawMaterials, icon: Box },
+      { href: "/dashboard/fabrex/suppliers", label: m.fabr.suppliers, icon: Building2 },
+      { href: "/dashboard/fabrex/clients", label: m.fabr.clients, icon: UserCircle },
+      { href: "/dashboard/fabrex/machines", label: m.fabr.machines, icon: Cpu },
+      { href: "/dashboard/fabrex/production-orders", label: m.fabr.productionOrders, icon: ClipboardList },
+      { href: "/dashboard/fabrex/sales", label: m.fabr.sales, icon: Receipt },
     ],
   },
   {

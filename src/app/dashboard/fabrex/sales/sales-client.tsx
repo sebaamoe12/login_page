@@ -1,0 +1,394 @@
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, X, Trash2, Info } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Modal } from "@/components/ui/modal";
+import { useToast } from "@/components/ui/toast";
+import { m } from "@/shared/messages";
+import { formatCurrency } from "@/shared/constants";
+
+export function SalesClient({
+  sales,
+  itemsBySaleId,
+  products,
+  clients,
+}: {
+  sales: any[];
+  itemsBySaleId: Record<string, any[]>;
+  products: { id: string; sku: string; name: string; sellingPrice: string; stock: number }[];
+  clients: { id: string; name: string }[];
+}) {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [showForm, setShowForm] = useState(false);
+  const [deleteSale, setDeleteSale] = useState<any>(null);
+  const [infoSale, setInfoSale] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [clientId, setClientId] = useState("");
+  const [lines, setLines] = useState<{ productId: string; quantity: number; unitPrice: string }[]>([]);
+
+  const resetForm = () => {
+    setClientId("");
+    setLines([]);
+  };
+
+  const supabaseCall = async () => {
+    const { createClient } = await import("@/lib/supabase/client");
+    return createClient();
+  };
+
+  const addLine = () => {
+    setLines([...lines, { productId: "", quantity: 1, unitPrice: "" }]);
+  };
+
+  const updateLine = (i: number, field: string, value: string) => {
+    const updated = lines.map((line, idx) => {
+      if (idx !== i) return line;
+      const newLine = { ...line, [field]: field === "quantity" ? parseInt(value) || 0 : value };
+      if (field === "productId") {
+        const product = products.find((p) => p.id === value);
+        newLine.unitPrice = product ? product.sellingPrice : "";
+      }
+      return newLine;
+    });
+    setLines(updated);
+  };
+
+  const removeLine = (i: number) => {
+    setLines(lines.filter((_, idx) => idx !== i));
+  };
+
+  const total = lines.reduce((sum, line) => sum + (line.quantity * (parseFloat(line.unitPrice) || 0)), 0);
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const supabase = await supabaseCall();
+    const saleId = crypto.randomUUID();
+    const totalAmount = total;
+
+    const { error: saleError } = await supabase.from("FabrexSale").insert({
+      id: saleId,
+      clientId: clientId || null,
+      totalAmount,
+      status: "COMPLETED",
+      companyId: "seed-company-001",
+    });
+    if (saleError) { toast(saleError.message, "error"); setLoading(false); return; }
+
+    for (const line of lines) {
+      const { error: itemError } = await supabase.from("FabrexSaleItem").insert({
+        id: crypto.randomUUID(),
+        saleId,
+        productId: line.productId,
+        quantity: line.quantity,
+        unitPrice: parseFloat(line.unitPrice) || 0,
+      });
+      if (itemError) { toast(itemError.message, "error"); setLoading(false); return; }
+
+      const { data: product } = await supabase
+        .from("FabrexProduct")
+        .select("stock")
+        .eq("id", line.productId)
+        .single();
+      if (product) {
+        await supabase
+          .from("FabrexProduct")
+          .update({ stock: product.stock - line.quantity })
+          .eq("id", line.productId);
+      }
+    }
+
+    toast(m.fabr.addSuccess);
+    setShowForm(false);
+    resetForm();
+    setLoading(false);
+    router.refresh();
+  };
+
+  const handleDelete = async () => {
+    if (!deleteSale) return;
+    const supabase = await supabaseCall();
+    const items = itemsBySaleId[deleteSale.id] || [];
+
+    for (const item of items) {
+      const { data: product } = await supabase
+        .from("FabrexProduct")
+        .select("stock")
+        .eq("id", item.productId)
+        .single();
+      if (product) {
+        await supabase
+          .from("FabrexProduct")
+          .update({ stock: product.stock + item.quantity })
+          .eq("id", item.productId);
+      }
+    }
+
+    await supabase.from("FabrexSaleItem").delete().eq("saleId", deleteSale.id);
+    await supabase.from("FabrexSale").delete().eq("id", deleteSale.id);
+    setDeleteSale(null);
+    toast(m.fabr.deleteSuccess);
+    router.refresh();
+  };
+
+  const statusLabels: Record<string, string> = {
+    COMPLETED: m.fabr.completed,
+    CANCELLED: m.fabr.cancelled,
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <button
+          onClick={() => { resetForm(); setShowForm(true); }}
+          className="btn-primary"
+        >
+          <Plus className="h-4 w-4" /> {m.fabr.addSale}
+        </button>
+      </div>
+
+      <div className="card overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-zinc-200 text-left text-zinc-500">
+              <th className="px-4 py-3 font-medium">{m.fabr.client}</th>
+              <th className="px-4 py-3 font-medium">{m.fabr.total}</th>
+              <th className="px-4 py-3 font-medium">{m.fabr.status}</th>
+              <th className="px-4 py-3 font-medium">{m.fabr.date}</th>
+              <th className="px-4 py-3 font-medium">{m.fabr.actions}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sales.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-12 text-center text-zinc-400">
+                  {m.fabr.empty}
+                </td>
+              </tr>
+            )}
+            {sales.map((s) => (
+              <tr key={s.id} className="border-b border-zinc-100 hover:bg-zinc-50">
+                <td className="px-4 py-3 font-medium text-zinc-900">
+                  {s.Client?.name || "—"}
+                </td>
+                <td className="px-4 py-3 text-zinc-600">
+                  {formatCurrency(s.totalAmount)}
+                </td>
+                <td className="px-4 py-3">
+                  <Badge status={s.status}>
+                    {statusLabels[s.status] || s.status}
+                  </Badge>
+                </td>
+                <td className="px-4 py-3 text-zinc-600">
+                  {new Date(s.createdAt).toLocaleDateString("fr-DZ")}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => setInfoSale(s)}
+                      className="btn-ghost btn-sm"
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setDeleteSale(s)}
+                      className="btn-ghost btn-sm text-red-500"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {infoSale && (
+        <Modal
+          open={true}
+          title="Détails de la vente"
+          onClose={() => setInfoSale(null)}
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-zinc-600">
+              <span className="font-medium text-zinc-900">{m.fabr.client} :</span>{" "}
+              {infoSale.Client?.name || "—"}
+            </p>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-200 text-left text-zinc-500">
+                  <th className="px-3 py-2 font-medium">SKU</th>
+                  <th className="px-3 py-2 font-medium">{m.fabr.saleItems}</th>
+                  <th className="px-3 py-2 font-medium">{m.fabr.stock}</th>
+                  <th className="px-3 py-2 font-medium">Prix unitaire</th>
+                  <th className="px-3 py-2 font-medium">{m.fabr.total}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(itemsBySaleId[infoSale.id] || []).map((item: any) => (
+                  <tr key={item.id} className="border-b border-zinc-100">
+                    <td className="px-3 py-2 font-medium text-zinc-900">
+                      {item.Product?.sku || "—"}
+                    </td>
+                    <td className="px-3 py-2 text-zinc-600">
+                      {item.Product?.name || "—"}
+                    </td>
+                    <td className="px-3 py-2 text-zinc-600">{item.quantity}</td>
+                    <td className="px-3 py-2 text-zinc-600">
+                      {formatCurrency(item.unitPrice)}
+                    </td>
+                    <td className="px-3 py-2 text-zinc-600">
+                      {formatCurrency(item.quantity * item.unitPrice)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setInfoSale(null)}
+                className="btn-primary"
+              >
+                {m.common.close}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {showForm && (
+        <Modal
+          open={true}
+          title={m.fabr.addSale}
+          onClose={() => { setShowForm(false); resetForm(); }}
+        >
+          <form onSubmit={handleCreate} className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-zinc-700">
+                {m.fabr.client}
+              </label>
+              <select
+                className="input"
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+              >
+                <option value="">{m.fabr.selectClient}</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="mb-1 block text-sm font-medium text-zinc-700">
+                {m.fabr.saleItems}
+              </label>
+              {lines.map((line, i) => (
+                <div key={i} className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <select
+                      className="input"
+                      value={line.productId}
+                      onChange={(e) => updateLine(i, "productId", e.target.value)}
+                      required
+                    >
+                      <option value="">{m.fabr.selectProduct}</option>
+                      {products.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.sku} - {p.name} ({m.fabr.stock}: {p.stock})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="w-20">
+                    <input
+                      className="input"
+                      type="number"
+                      min="1"
+                      value={line.quantity}
+                      onChange={(e) => updateLine(i, "quantity", e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="w-28">
+                    <input
+                      className="input"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={line.unitPrice}
+                      onChange={(e) => updateLine(i, "unitPrice", e.target.value)}
+                      required
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeLine(i)}
+                    className="btn-ghost btn-sm text-red-500 mb-0.5"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addLine}
+                className="btn-secondary btn-sm"
+              >
+                <Plus className="h-3.5 w-3.5" /> {m.fabr.addLine}
+              </button>
+            </div>
+
+            <div className="flex justify-between items-center pt-2">
+              <span className="font-medium text-zinc-900">
+                {m.fabr.saleTotal} : {formatCurrency(total)}
+              </span>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setShowForm(false); resetForm(); }}
+                  className="btn-secondary"
+                >
+                  {m.common.cancel}
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading || lines.length === 0}
+                  className="btn-primary"
+                >
+                  {loading ? m.common.loading : m.common.save}
+                </button>
+              </div>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {deleteSale && (
+        <Modal
+          open={true}
+          title={m.fabr.confirmDelete}
+          onClose={() => setDeleteSale(null)}
+        >
+          <p className="text-sm text-zinc-600 mb-4">Supprimer cette vente ?</p>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setDeleteSale(null)}
+              className="btn-secondary"
+            >
+              {m.common.cancel}
+            </button>
+            <button onClick={handleDelete} className="btn-danger">
+              {m.common.confirm}
+            </button>
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}

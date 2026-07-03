@@ -89,6 +89,109 @@ export interface PourelleSaleType {
   items?: PourelleSaleItemType[];
 }
 
+export interface FabrexSupplierType {
+  id: string;
+  name: string;
+  type: string;
+  phone: string;
+  email: string;
+  address: string;
+  companyId: string;
+  createdAt: string;
+}
+
+export interface FabrexRawMaterialType {
+  id: string;
+  name: string;
+  sku: string;
+  unit: string;
+  stock: string;
+  purchasePrice: string;
+  supplierId: string | null;
+  companyId: string;
+  createdAt: string;
+  Supplier?: { name: string } | null;
+}
+
+export interface FabrexProductType {
+  id: string;
+  sku: string;
+  name: string;
+  category: string;
+  sellingPrice: string;
+  stock: number;
+  companyId: string;
+  createdAt: string;
+}
+
+export interface FabrexClientType {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
+  companyId: string;
+  createdAt: string;
+}
+
+export interface FabrexMachineType {
+  id: string;
+  name: string;
+  model: string;
+  status: string;
+  companyId: string;
+  createdAt: string;
+}
+
+export interface FabrexProductionOrderType {
+  id: string;
+  productId: string;
+  machineId: string | null;
+  operatorName: string;
+  plannedQuantity: number;
+  completedQuantity: number;
+  wasteQuantity: number;
+  startDate: string | null;
+  endDate: string | null;
+  status: string;
+  notes: string;
+  companyId: string;
+  createdAt: string;
+  Product?: { sku: string; name: string } | null;
+  Machine?: { name: string } | null;
+  materials?: FabrexProdOrderMaterialType[];
+}
+
+export interface FabrexProdOrderMaterialType {
+  id: string;
+  productionOrderId: string;
+  rawMaterialId: string;
+  quantityUsed: string;
+  companyId: string;
+  RawMaterial?: { name: string; sku: string; unit: string } | null;
+}
+
+export interface FabrexSaleType {
+  id: string;
+  clientId: string | null;
+  totalAmount: string;
+  status: string;
+  companyId: string;
+  createdAt: string;
+  Client?: { name: string } | null;
+  items?: FabrexSaleItemType[];
+}
+
+export interface FabrexSaleItemType {
+  id: string;
+  saleId: string;
+  productId: string;
+  quantity: number;
+  unitPrice: string;
+  companyId: string;
+  Product?: { sku: string; name: string } | null;
+}
+
 export interface PourelleSaleItemType {
   id: string;
   saleId: string;
