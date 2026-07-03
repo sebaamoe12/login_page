@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Plus, CreditCard, Check, Trash2 } from "lucide-react";
+import { Plus, CreditCard, Check, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
@@ -34,7 +34,6 @@ export function PayrollClient({ employees, payrolls: initial, advancesByPayroll 
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [loading, setLoading] = useState(false);
   const [confirmLoading, setConfirmLoading] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<PayrollRecord | null>(null);
   const [employeeFilter, setEmployeeFilter] = useState("");
 
@@ -89,9 +88,7 @@ export function PayrollClient({ employees, payrolls: initial, advancesByPayroll 
     }
   };
 
-  const filteredEmployees = employees.filter(
-    (e) => `${e.firstName} ${e.lastName}`.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredEmployees = employees;
 
   const filteredRecords = useMemo(() => {
     if (!employeeFilter) return initial;
@@ -277,16 +274,6 @@ export function PayrollClient({ employees, payrolls: initial, advancesByPayroll 
           >
             <Plus className="h-4 w-4" /> {loading ? m.pay.adding : m.pay.addPayrollLine}
           </button>
-        </div>
-        <div className="relative mt-3">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={m.pay.search}
-            className="input"
-            style={{ paddingLeft: "2.5rem" }}
-          />
         </div>
       </div>
 

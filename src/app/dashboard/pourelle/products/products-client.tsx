@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Pencil, Trash2, PackagePlus } from "lucide-react";
+import { Plus, Pencil, Trash2, PackagePlus } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { m } from "@/shared/messages";
@@ -22,7 +22,6 @@ export function ProductsClient({ products, suppliers }: { products: PourelleProd
   const [showStock, setShowStock] = useState<PourelleProductType | null>(null);
   const [editProduct, setEditProduct] = useState<PourelleProductType | null>(null);
   const [deleteProduct, setDeleteProduct] = useState<PourelleProductType | null>(null);
-  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ sku: "", category: "Autres", brand: "", purchasePrice: "", sellingPrice: "", stock: "0", supplierId: "" });
   const [stockQty, setStockQty] = useState("1");
@@ -33,11 +32,6 @@ export function ProductsClient({ products, suppliers }: { products: PourelleProd
     const { createClient } = await import("@/lib/supabase/client");
     return createClient();
   };
-
-  const filtered = products.filter((p) =>
-    p.sku.toLowerCase().includes(search.toLowerCase()) ||
-    p.brand.toLowerCase().includes(search.toLowerCase())
-  );
 
   const resetForm = () => setForm({ sku: "", category: "Autres", brand: "", purchasePrice: "", sellingPrice: "", stock: "0", supplierId: "" });
 
@@ -104,11 +98,7 @@ export function ProductsClient({ products, suppliers }: { products: PourelleProd
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-          <input className="input pl-9" placeholder={m.pour.search} value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
+      <div className="flex justify-end">
         <button onClick={() => { setEditProduct(null); resetForm(); setShowForm(true); }} className="btn-primary">
           <Plus className="h-4 w-4" /> {m.pour.addProduct}
         </button>
@@ -129,10 +119,10 @@ export function ProductsClient({ products, suppliers }: { products: PourelleProd
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 && (
+            {products.length === 0 && (
               <tr><td colSpan={8} className="px-4 py-12 text-center text-zinc-400">{m.pour.empty}</td></tr>
             )}
-            {filtered.map((p) => (
+            {products.map((p) => (
               <tr key={p.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                 <td className="px-4 py-3 font-medium text-zinc-900">{p.sku}</td>
                 <td className="px-4 py-3"><span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs text-zinc-600">{p.category}</span></td>

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Pencil, Trash2, CheckCircle, XCircle, DollarSign } from "lucide-react";
+import { Plus, Pencil, Trash2, CheckCircle, XCircle, DollarSign } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { ProgressBar } from "@/components/ui/progress-bar";
@@ -29,7 +29,6 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
   const [deleteAdvance, setDeleteAdvance] = useState<Advance | null>(null);
   const [form, setForm] = useState({ employeeId: "", amount: "", type: "SALARY", reason: "" });
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState("");
 
   const filtered = advances.filter((a) => filter === "ALL" || a.status === filter);
 
@@ -133,10 +132,6 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
               {m.adv.all === "Toutes" && f === "ALL" ? "Toutes" : m.adv[f.toLowerCase() as keyof typeof m.adv] || f}
             </button>
           ))}
-        </div>
-        <div className="relative ml-auto">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={m.adv.search} className="input w-48" style={{ paddingLeft: "2.5rem" }} />
         </div>
       </div>
 

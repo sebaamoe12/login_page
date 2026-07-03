@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Pencil, Trash2, ChevronDown } from "lucide-react";
+import { Plus, X, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
@@ -41,7 +41,7 @@ export function SalesClient({
   const [tracking, setTracking] = useState("");
   const [lines, setLines] = useState<{ productId: string; quantity: number; unitPrice: string }[]>([]);
   const [loading, setLoading] = useState(false);
-  const [statusMenu, setStatusMenu] = useState<string | null>(null);
+  const [statusModal, setStatusModal] = useState<{ id: string; status: string } | null>(null);
   const [deleteSale, setDeleteSale] = useState<any>(null);
 
   const supabaseCall = async () => {
@@ -76,7 +76,6 @@ export function SalesClient({
     const supabase = await supabaseCall();
     const saleId = crypto.randomUUID();
 
-    const isDelivery = saleType === "DELIVERY" || saleType === "DELIVERY_COMPANY";
     const status = saleType === "IN_STORE" ? "COMPLETED" : "PENDING";
 
     const { error: saleError } = await supabase.from("PourelleSale").insert({
@@ -109,11 +108,12 @@ export function SalesClient({
     router.refresh();
   };
 
-  const handleStatusChange = async (saleId: string, newStatus: string) => {
+  const handleStatusChange = async (newStatus: string) => {
+    if (!statusModal) return;
     const supabase = await supabaseCall();
-    const { error } = await supabase.from("PourelleSale").update({ status: newStatus }).eq("id", saleId);
+    const { error } = await supabase.from("PourelleSale").update({ status: newStatus }).eq("id", statusModal.id);
     if (error) { toast(error.message, "error"); return; }
-    setStatusMenu(null);
+    setStatusModal(null);
     toast(m.pour.editSuccess);
     router.refresh();
   };
@@ -159,27 +159,8 @@ export function SalesClient({
                     {typeLabels[s.type] || s.type}
                   </span>
                 </td>
-                <td className="px-4 py-3 relative">
-                  <div className="flex items-center gap-1">
-                    <Badge status={s.status}>{statusLabels[s.status] || s.status}</Badge>
-                    {(s.type === "DELIVERY" || s.type === "DELIVERY_COMPANY") && (
-                      <button onClick={() => setStatusMenu(statusMenu === s.id ? null : s.id)} className="btn-ghost btn-sm p-0.5">
-                        <ChevronDown className="h-3 w-3" />
-                      </button>
-                    )}
-                  </div>
-                  {statusMenu === s.id && (
-                    <div className="absolute top-full left-0 z-50 mt-1 w-40 rounded-lg border bg-white py-1 shadow-lg">
-                      {DELIVERY_STATUSES.map((st) => (
-                        <button key={st}
-                          onClick={() => handleStatusChange(s.id, st)}
-                          className={`w-full px-3 py-1.5 text-left text-xs hover:bg-zinc-50 ${s.status === st ? "font-semibold text-primary" : "text-zinc-600"}`}
-                        >
-                          {statusLabels[st]}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                <td className="px-4 py-3">
+                  <Badge status={s.status}>{statusLabels[s.status] || s.status}</Badge>
                 </td>
                 <td className="px-4 py-3 text-zinc-600">
                   {s.type === "DELIVERY" ? s.clientName : s.type === "DELIVERY_COMPANY" ? `Suivi: ${s.tracking || "-"}` : "-"}
@@ -188,6 +169,9 @@ export function SalesClient({
                 <td className="px-4 py-3 text-zinc-600">{new Date(s.createdAt).toLocaleDateString("fr-DZ")}</td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1">
+                    {(s.type === "DELIVERY" || s.type === "DELIVERY_COMPANY") && (
+                      <button onClick={() => setStatusModal({ id: s.id, status: s.status })} className="btn-ghost btn-sm"><Pencil className="h-3.5 w-3.5" /></button>
+                    )}
                     <button onClick={() => setDeleteSale(s)} className="btn-ghost btn-sm text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                 </td>
@@ -271,6 +255,27 @@ export function SalesClient({
               <button type="submit" disabled={loading || lines.length === 0} className="btn-primary">{loading ? m.common.loading : m.common.save}</button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {statusModal && (
+        <Modal open={true} title="Changer le statut" onClose={() => setStatusModal(null)}>
+          <div className="space-y-3">
+            <p className="text-sm text-zinc-600">Statut actuel : <Badge status={statusModal.status}>{statusLabels[statusModal.status]}</Badge></p>
+            <div className="flex flex-wrap gap-2">
+              {DELIVERY_STATUSES.map((st) => (
+                <button key={st}
+                  onClick={() => handleStatusChange(st)}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${statusModal.status === st ? "bg-primary text-white" : "border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}
+                >
+                  {statusLabels[st]}
+                </button>
+              ))}
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button onClick={() => setStatusModal(null)} className="btn-secondary">{m.common.cancel}</button>
+            </div>
+          </div>
         </Modal>
       )}
 

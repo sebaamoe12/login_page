@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { m } from "@/shared/messages";
@@ -14,7 +14,6 @@ export function SuppliersClient({ suppliers }: { suppliers: PourelleSupplierType
   const [showForm, setShowForm] = useState(false);
   const [editSupplier, setEditSupplier] = useState<PourelleSupplierType | null>(null);
   const [deleteSupplier, setDeleteSupplier] = useState<PourelleSupplierType | null>(null);
-  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: "", type: "LOCAL", phone: "", address: "", email: "" });
 
@@ -22,11 +21,6 @@ export function SuppliersClient({ suppliers }: { suppliers: PourelleSupplierType
     const { createClient } = await import("@/lib/supabase/client");
     return createClient();
   };
-
-  const filtered = suppliers.filter((s) =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.phone.toLowerCase().includes(search.toLowerCase())
-  );
 
   const resetForm = () => setForm({ name: "", type: "LOCAL", phone: "", address: "", email: "" });
 
@@ -68,11 +62,7 @@ export function SuppliersClient({ suppliers }: { suppliers: PourelleSupplierType
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-          <input className="input pl-9" placeholder={m.pour.search} value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
+      <div className="flex justify-end">
         <button onClick={() => { setEditSupplier(null); resetForm(); setShowForm(true); }} className="btn-primary">
           <Plus className="h-4 w-4" /> {m.pour.addSupplier}
         </button>
@@ -91,10 +81,10 @@ export function SuppliersClient({ suppliers }: { suppliers: PourelleSupplierType
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 && (
+            {suppliers.length === 0 && (
               <tr><td colSpan={6} className="px-4 py-12 text-center text-zinc-400">{m.pour.empty}</td></tr>
             )}
-            {filtered.map((s) => (
+            {suppliers.map((s) => (
               <tr key={s.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                 <td className="px-4 py-3 font-medium text-zinc-900">{s.name}</td>
                 <td className="px-4 py-3">
