@@ -76,12 +76,12 @@ export default async function ReportsPage() {
   // Top products
   const { data: saleItems } = await supabase
     .from("PourelleSaleItem")
-    .select("productId, quantity, unitPrice, Product:productId(name, sku, purchasePrice)");
+    .select("productId, quantity, unitPrice, Product:productId(sku, purchasePrice)");
 
   const byProduct = new Map<string, { name: string; sku: string; qty: number; revenue: number; profit: number }>();
   saleItems?.forEach((item) => {
     const prod = Array.isArray(item.Product) ? item.Product[0] : item.Product;
-    const name = prod?.name || "—";
+    const name = prod?.sku || "—";
     const sku = prod?.sku || "";
     const purchasePrice = prod ? Number((prod as any).purchasePrice) : 0;
     const entry = byProduct.get(item.productId) || { name, sku, qty: 0, revenue: 0, profit: 0 };
@@ -96,7 +96,7 @@ export default async function ReportsPage() {
     .slice(0, 10);
 
   // Stock value
-  const { data: products } = await supabase.from("PourelleProduct").select("id, name, sku, purchasePrice, sellingPrice, stock");
+  const { data: products } = await supabase.from("PourelleProduct").select("id, sku, purchasePrice, sellingPrice, stock");
   const stockValue = products?.reduce((s, p) => s + Number(p.purchasePrice) * p.stock, 0) || 0;
   const lowStockItems = products?.filter((p) => p.stock > 0 && p.stock < 5) || [];
 
@@ -276,7 +276,7 @@ export default async function ReportsPage() {
                 <tbody className="divide-y divide-zinc-200">
                   {topProducts.map((p) => (
                     <tr key={p.id} className="hover:bg-zinc-50">
-                      <td className="px-5 py-3 font-medium text-zinc-900">{p.name} <span className="text-zinc-400">({p.sku})</span></td>
+                      <td className="px-5 py-3 font-medium text-zinc-900">{p.name}</td>
                       <td className="px-5 py-3 text-zinc-600">{p.qty}</td>
                       <td className="px-5 py-3">{formatCurrency(p.revenue)}</td>
                       <td className="px-5 py-3 text-emerald-600">{formatCurrency(p.profit)}</td>
@@ -309,7 +309,7 @@ export default async function ReportsPage() {
                 <tbody className="divide-y divide-zinc-200">
                   {lowStockItems.map((p) => (
                     <tr key={p.id} className="hover:bg-zinc-50">
-                      <td className="px-5 py-3 font-medium text-zinc-900">{p.name}</td>
+                      <td className="px-5 py-3 font-medium text-zinc-900">{p.sku}</td>
                       <td className="px-5 py-3 text-zinc-600">{p.sku}</td>
                       <td className="px-5 py-3"><span className="font-medium text-red-600">{p.stock}</span></td>
                       <td className="px-5 py-3">{formatCurrency(p.sellingPrice)}</td>

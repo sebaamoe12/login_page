@@ -15,12 +15,12 @@ export default async function SalesPage() {
 
   const { data: items } = await supabase
     .from("PourelleSaleItem")
-    .select("*, Product:productId(name, sku)");
+    .select("*, Product:productId(sku)");
 
   const { data: products } = await supabase
     .from("PourelleProduct")
-    .select("id, name, sku, sellingPrice, stock")
-    .order("name");
+    .select("id, sku, sellingPrice, stock")
+    .order("sku");
 
   const itemsBySaleId: Record<string, any[]> = {};
   (items ?? []).forEach((item) => {

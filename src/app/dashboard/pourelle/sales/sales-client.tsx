@@ -16,7 +16,7 @@ export function SalesClient({
 }: {
   sales: any[];
   itemsBySaleId: Record<string, any[]>;
-  products: { id: string; name: string; sku: string; sellingPrice: string; stock: number }[];
+  products: { id: string; sku: string; sellingPrice: string; stock: number }[];
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -173,7 +173,7 @@ export function SalesClient({
                     <select className="input text-sm" value={line.productId} onChange={(e) => updateLine(i, "productId", e.target.value)}>
                       <option value="">{m.pour.selectProduct}</option>
                       {products.filter((p) => p.stock > 0).map((p) => (
-                        <option key={p.id} value={p.id}>{p.name} ({p.sku}) — {formatCurrency(p.sellingPrice)} — stock: {p.stock}</option>
+                        <option key={p.id} value={p.id}>{p.sku} — {formatCurrency(p.sellingPrice)} — stock: {p.stock}</option>
                       ))}
                     </select>
                   </div>

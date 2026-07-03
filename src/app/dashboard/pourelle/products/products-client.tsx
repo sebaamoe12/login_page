@@ -2,22 +2,32 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, PackagePlus } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { m } from "@/shared/messages";
 import { formatCurrency, POURELLE_CATEGORIES } from "@/shared/constants";
 import type { PourelleProductType } from "@/shared/types";
 
-export function ProductsClient({ products }: { products: PourelleProductType[] }) {
+interface SupplierOption {
+  id: string;
+  name: string;
+  type: string;
+}
+
+export function ProductsClient({ products, suppliers }: { products: PourelleProductType[]; suppliers: SupplierOption[] }) {
   const router = useRouter();
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
+  const [showStock, setShowStock] = useState<PourelleProductType | null>(null);
   const [editProduct, setEditProduct] = useState<PourelleProductType | null>(null);
   const [deleteProduct, setDeleteProduct] = useState<PourelleProductType | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ name: "", sku: "", category: "Autres", brand: "", purchasePrice: "", sellingPrice: "", stock: "0" });
+  const [form, setForm] = useState({ sku: "", category: "Autres", brand: "", purchasePrice: "", sellingPrice: "", stock: "0", supplierId: "" });
+  const [stockQty, setStockQty] = useState("1");
+  const [stockPurchasePrice, setStockPurchasePrice] = useState("");
+  const [stockSellingPrice, setStockSellingPrice] = useState("");
 
   const supabaseCall = async () => {
     const { createClient } = await import("@/lib/supabase/client");
@@ -25,16 +35,15 @@ export function ProductsClient({ products }: { products: PourelleProductType[] }
   };
 
   const filtered = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
     p.sku.toLowerCase().includes(search.toLowerCase()) ||
     p.brand.toLowerCase().includes(search.toLowerCase())
   );
 
-  const resetForm = () => setForm({ name: "", sku: "", category: "Autres", brand: "", purchasePrice: "", sellingPrice: "", stock: "0" });
+  const resetForm = () => setForm({ sku: "", category: "Autres", brand: "", purchasePrice: "", sellingPrice: "", stock: "0", supplierId: "" });
 
   const openEdit = (p: PourelleProductType) => {
     setEditProduct(p);
-    setForm({ name: p.name, sku: p.sku, category: p.category, brand: p.brand, purchasePrice: p.purchasePrice, sellingPrice: p.sellingPrice, stock: String(p.stock) });
+    setForm({ sku: p.sku, category: p.category, brand: p.brand, purchasePrice: p.purchasePrice, sellingPrice: p.sellingPrice, stock: String(p.stock), supplierId: p.supplierId || "" });
     setShowForm(true);
   };
 
@@ -42,12 +51,14 @@ export function ProductsClient({ products }: { products: PourelleProductType[] }
     e.preventDefault();
     setLoading(true);
     const supabase = await supabaseCall();
-    const payload = {
-      name: form.name, sku: form.sku, category: form.category, brand: form.brand,
+    const payload: Record<string, any> = {
+      sku: form.sku, category: form.category, brand: form.brand,
       purchasePrice: parseFloat(form.purchasePrice) || 0,
       sellingPrice: parseFloat(form.sellingPrice) || 0,
       stock: parseInt(form.stock) || 0,
     };
+    if (form.supplierId) payload.supplierId = form.supplierId;
+    else payload.supplierId = null;
 
     if (editProduct) {
       const { error } = await supabase.from("PourelleProduct").update(payload).eq("id", editProduct.id);
@@ -73,6 +84,24 @@ export function ProductsClient({ products }: { products: PourelleProductType[] }
     router.refresh();
   };
 
+  const handleAddStock = async () => {
+    if (!showStock) return;
+    setLoading(true);
+    const supabase = await supabaseCall();
+    const qty = parseInt(stockQty) || 1;
+    const update: Record<string, any> = { stock: showStock.stock + qty };
+    const pp = parseFloat(stockPurchasePrice);
+    const sp = parseFloat(stockSellingPrice);
+    if (!isNaN(pp) && pp > 0) update.purchasePrice = pp;
+    if (!isNaN(sp) && sp > 0) update.sellingPrice = sp;
+    const { error } = await supabase.from("PourelleProduct").update(update).eq("id", showStock.id);
+    if (error) { toast(error.message, "error"); setLoading(false); return; }
+    setShowStock(null); setStockQty("1"); setStockPurchasePrice(""); setStockSellingPrice("");
+    setLoading(false);
+    toast(m.pour.stockAdded);
+    router.refresh();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -89,10 +118,10 @@ export function ProductsClient({ products }: { products: PourelleProductType[] }
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-zinc-200 text-left text-zinc-500">
-              <th className="px-4 py-3 font-medium">{m.pour.name}</th>
               <th className="px-4 py-3 font-medium">{m.pour.sku}</th>
               <th className="px-4 py-3 font-medium">{m.pour.category}</th>
               <th className="px-4 py-3 font-medium">{m.pour.brand}</th>
+              <th className="px-4 py-3 font-medium">{m.pour.supplier}</th>
               <th className="px-4 py-3 font-medium">{m.pour.purchasePrice}</th>
               <th className="px-4 py-3 font-medium">{m.pour.sellingPrice}</th>
               <th className="px-4 py-3 font-medium">{m.pour.stock}</th>
@@ -105,10 +134,10 @@ export function ProductsClient({ products }: { products: PourelleProductType[] }
             )}
             {filtered.map((p) => (
               <tr key={p.id} className="border-b border-zinc-100 hover:bg-zinc-50">
-                <td className="px-4 py-3 font-medium text-zinc-900">{p.name}</td>
-                <td className="px-4 py-3 text-zinc-600">{p.sku}</td>
+                <td className="px-4 py-3 font-medium text-zinc-900">{p.sku}</td>
                 <td className="px-4 py-3"><span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs text-zinc-600">{p.category}</span></td>
                 <td className="px-4 py-3 text-zinc-600">{p.brand}</td>
+                <td className="px-4 py-3 text-zinc-600">{p.Supplier?.name || "—"}</td>
                 <td className="px-4 py-3 text-zinc-600">{formatCurrency(p.purchasePrice)}</td>
                 <td className="px-4 py-3 text-zinc-600">{formatCurrency(p.sellingPrice)}</td>
                 <td className="px-4 py-3">
@@ -117,6 +146,7 @@ export function ProductsClient({ products }: { products: PourelleProductType[] }
                 <td className="px-4 py-3">
                   <div className="flex gap-1">
                     <button onClick={() => openEdit(p)} className="btn-ghost btn-sm"><Pencil className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => { setShowStock(p); setStockQty("1"); setStockPurchasePrice(""); setStockSellingPrice(""); }} className="btn-ghost btn-sm text-emerald-600"><PackagePlus className="h-3.5 w-3.5" /></button>
                     <button onClick={() => setDeleteProduct(p)} className="btn-ghost btn-sm text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                 </td>
@@ -131,10 +161,6 @@ export function ProductsClient({ products }: { products: PourelleProductType[] }
           <form onSubmit={handleSave} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.name}</label>
-                <input className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-              </div>
-              <div>
                 <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.sku}</label>
                 <input className="input" required value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
               </div>
@@ -147,6 +173,13 @@ export function ProductsClient({ products }: { products: PourelleProductType[] }
               <div>
                 <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.brand}</label>
                 <input className="input" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.supplier}</label>
+                <select className="input" value={form.supplierId} onChange={(e) => setForm({ ...form, supplierId: e.target.value })}>
+                  <option value="">{m.pour.selectSupplier}</option>
+                  {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name} ({s.type})</option>)}
+                </select>
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.purchasePrice} (DA)</label>
@@ -166,6 +199,30 @@ export function ProductsClient({ products }: { products: PourelleProductType[] }
               <button type="submit" disabled={loading} className="btn-primary">{loading ? m.common.loading : m.common.save}</button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {showStock && (
+        <Modal open={true} title={`${m.pour.addStock} — ${showStock.sku}`} onClose={() => { setShowStock(null); setStockQty("1"); }}>
+          <div className="space-y-4">
+            <p className="text-sm text-zinc-600">Stock actuel : <strong>{showStock.stock}</strong></p>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.stockToAdd}</label>
+              <input className="input" type="number" min="1" value={stockQty} onChange={(e) => setStockQty(e.target.value)} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.newPurchasePrice}</label>
+              <input className="input" type="number" min="0" placeholder={`Actuel: ${formatCurrency(showStock.purchasePrice)}`} value={stockPurchasePrice} onChange={(e) => setStockPurchasePrice(e.target.value)} />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.newSellingPrice}</label>
+              <input className="input" type="number" min="0" placeholder={`Actuel: ${formatCurrency(showStock.sellingPrice)}`} value={stockSellingPrice} onChange={(e) => setStockSellingPrice(e.target.value)} />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button onClick={() => { setShowStock(null); setStockQty("1"); }} className="btn-secondary">{m.common.cancel}</button>
+              <button onClick={handleAddStock} disabled={loading} className="btn-primary">{loading ? m.common.loading : m.pour.addStock}</button>
+            </div>
+          </div>
         </Modal>
       )}
 

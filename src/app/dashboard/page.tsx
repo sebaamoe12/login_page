@@ -34,7 +34,7 @@ export default async function DashboardPage() {
   // Pourelle products
   const { data: products } = await supabase
     .from("PourelleProduct")
-    .select("id, stock, name, sku");
+    .select("id, stock");
 
   const lowStockCount = products?.filter((p) => p.stock < 5).length || 0;
   const totalProducts = products?.length || 0;

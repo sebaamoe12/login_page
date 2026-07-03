@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { LayoutDashboard, Users, Wallet, Banknote, BarChart3, Menu, LogOut, ChevronDown, Store, Shirt, Building2, ShoppingCart, Receipt, Factory } from "lucide-react";
+import { LayoutDashboard, Users, Wallet, Banknote, BarChart3, Menu, LogOut, ChevronDown, Store, Shirt, Building2, Receipt, Factory } from "lucide-react";
 import { ToastProvider } from "@/components/ui/toast";
 import SignOutButton from "./sign-out-button";
 import { m } from "@/shared/messages";
@@ -22,7 +22,6 @@ const navItems: NavItem[] = [
       { href: "/dashboard/pourelle", label: m.pour.hub, icon: LayoutDashboard },
       { href: "/dashboard/pourelle/products", label: m.pour.products, icon: Shirt },
       { href: "/dashboard/pourelle/suppliers", label: m.pour.suppliers, icon: Building2 },
-      { href: "/dashboard/pourelle/purchases", label: m.pour.purchases, icon: ShoppingCart },
       { href: "/dashboard/pourelle/sales", label: m.pour.sales, icon: Receipt },
     ],
   },

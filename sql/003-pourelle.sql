@@ -4,44 +4,28 @@
 -- ============================================================
 
 -- 1. Tables
-CREATE TABLE IF NOT EXISTS "PourelleProduct" (
+CREATE TABLE IF NOT EXISTS "PourelleSupplier" (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'LOCAL',
+  phone TEXT NOT NULL DEFAULT '',
+  address TEXT NOT NULL DEFAULT '',
+  email TEXT NOT NULL DEFAULT '',
+  "companyId" TEXT NOT NULL REFERENCES "Company"(id),
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS "PourelleProduct" (
+  id TEXT PRIMARY KEY,
   sku TEXT NOT NULL,
   category TEXT NOT NULL DEFAULT 'Autres',
   brand TEXT NOT NULL DEFAULT '',
   "purchasePrice" DECIMAL(10,2) NOT NULL DEFAULT 0,
   "sellingPrice" DECIMAL(10,2) NOT NULL DEFAULT 0,
   stock INTEGER NOT NULL DEFAULT 0,
+  "supplierId" TEXT REFERENCES "PourelleSupplier"(id),
   "companyId" TEXT NOT NULL REFERENCES "Company"(id),
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS "PourelleSupplier" (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  contact TEXT NOT NULL DEFAULT '',
-  address TEXT NOT NULL DEFAULT '',
-  "companyId" TEXT NOT NULL REFERENCES "Company"(id),
-  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS "PourellePurchaseOrder" (
-  id TEXT PRIMARY KEY,
-  "supplierId" TEXT NOT NULL REFERENCES "PourelleSupplier"(id),
-  status TEXT NOT NULL DEFAULT 'PENDING',
-  "totalAmount" DECIMAL(10,2) NOT NULL DEFAULT 0,
-  "companyId" TEXT NOT NULL REFERENCES "Company"(id),
-  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE TABLE IF NOT EXISTS "PourellePurchaseOrderItem" (
-  id TEXT PRIMARY KEY,
-  "purchaseOrderId" TEXT NOT NULL REFERENCES "PourellePurchaseOrder"(id),
-  "productId" TEXT NOT NULL REFERENCES "PourelleProduct"(id),
-  quantity INTEGER NOT NULL DEFAULT 1,
-  "unitPrice" DECIMAL(10,2) NOT NULL DEFAULT 0,
-  "companyId" TEXT NOT NULL REFERENCES "Company"(id)
 );
 
 CREATE TABLE IF NOT EXISTS "PourelleSale" (
@@ -66,18 +50,10 @@ CREATE TABLE IF NOT EXISTS "PourelleSaleItem" (
 );
 
 -- 2. Row Level Security
-ALTER TABLE "PourelleProduct" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "PourelleSupplier" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "PourellePurchaseOrder" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "PourellePurchaseOrderItem" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "PourelleProduct" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "PourelleSale" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "PourelleSaleItem" ENABLE ROW LEVEL SECURITY;
-
--- PourelleProduct
-DO $$ BEGIN CREATE POLICY "pourelleproduct_select" ON "PourelleProduct" FOR SELECT USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE POLICY "pourelleproduct_insert" ON "PourelleProduct" FOR INSERT WITH CHECK ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE POLICY "pourelleproduct_update" ON "PourelleProduct" FOR UPDATE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE POLICY "pourelleproduct_delete" ON "PourelleProduct" FOR DELETE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- PourelleSupplier
 DO $$ BEGIN CREATE POLICY "pourellesupplier_select" ON "PourelleSupplier" FOR SELECT USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
@@ -85,17 +61,11 @@ DO $$ BEGIN CREATE POLICY "pourellesupplier_insert" ON "PourelleSupplier" FOR IN
 DO $$ BEGIN CREATE POLICY "pourellesupplier_update" ON "PourelleSupplier" FOR UPDATE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE POLICY "pourellesupplier_delete" ON "PourelleSupplier" FOR DELETE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
--- PourellePurchaseOrder
-DO $$ BEGIN CREATE POLICY "pourellepurchaseorder_select" ON "PourellePurchaseOrder" FOR SELECT USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE POLICY "pourellepurchaseorder_insert" ON "PourellePurchaseOrder" FOR INSERT WITH CHECK ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE POLICY "pourellepurchaseorder_update" ON "PourellePurchaseOrder" FOR UPDATE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE POLICY "pourellepurchaseorder_delete" ON "PourellePurchaseOrder" FOR DELETE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
-
--- PourellePurchaseOrderItem
-DO $$ BEGIN CREATE POLICY "pourellepurchaseorderitem_select" ON "PourellePurchaseOrderItem" FOR SELECT USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE POLICY "pourellepurchaseorderitem_insert" ON "PourellePurchaseOrderItem" FOR INSERT WITH CHECK ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE POLICY "pourellepurchaseorderitem_update" ON "PourellePurchaseOrderItem" FOR UPDATE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE POLICY "pourellepurchaseorderitem_delete" ON "PourellePurchaseOrderItem" FOR DELETE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+-- PourelleProduct
+DO $$ BEGIN CREATE POLICY "pourelleproduct_select" ON "PourelleProduct" FOR SELECT USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "pourelleproduct_insert" ON "PourelleProduct" FOR INSERT WITH CHECK ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "pourelleproduct_update" ON "PourelleProduct" FOR UPDATE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "pourelleproduct_delete" ON "PourelleProduct" FOR DELETE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- PourelleSale
 DO $$ BEGIN CREATE POLICY "pourellesale_select" ON "PourelleSale" FOR SELECT USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;

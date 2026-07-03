@@ -10,13 +10,18 @@ export default async function ProductsPage() {
 
   const { data: products } = await supabase
     .from("PourelleProduct")
-    .select("*")
+    .select("*, Supplier:supplierId(name, type)")
     .order("createdAt", { ascending: false });
+
+  const { data: suppliers } = await supabase
+    .from("PourelleSupplier")
+    .select("id, name, type")
+    .order("name");
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-zinc-900">{m.pour.products}</h1>
-      <ProductsClient products={products ?? []} />
+      <ProductsClient products={products ?? []} suppliers={suppliers ?? []} />
     </div>
   );
 }

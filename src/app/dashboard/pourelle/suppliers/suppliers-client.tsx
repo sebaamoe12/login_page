@@ -16,7 +16,7 @@ export function SuppliersClient({ suppliers }: { suppliers: PourelleSupplierType
   const [deleteSupplier, setDeleteSupplier] = useState<PourelleSupplierType | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ name: "", contact: "", address: "" });
+  const [form, setForm] = useState({ name: "", type: "LOCAL", phone: "", address: "", email: "" });
 
   const supabaseCall = async () => {
     const { createClient } = await import("@/lib/supabase/client");
@@ -25,14 +25,14 @@ export function SuppliersClient({ suppliers }: { suppliers: PourelleSupplierType
 
   const filtered = suppliers.filter((s) =>
     s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.contact.toLowerCase().includes(search.toLowerCase())
+    s.phone.toLowerCase().includes(search.toLowerCase())
   );
 
-  const resetForm = () => setForm({ name: "", contact: "", address: "" });
+  const resetForm = () => setForm({ name: "", type: "LOCAL", phone: "", address: "", email: "" });
 
   const openEdit = (s: PourelleSupplierType) => {
     setEditSupplier(s);
-    setForm({ name: s.name, contact: s.contact, address: s.address });
+    setForm({ name: s.name, type: s.type, phone: s.phone, address: s.address, email: s.email });
     setShowForm(true);
   };
 
@@ -40,7 +40,7 @@ export function SuppliersClient({ suppliers }: { suppliers: PourelleSupplierType
     e.preventDefault();
     setLoading(true);
     const supabase = await supabaseCall();
-    const payload = { name: form.name, contact: form.contact, address: form.address };
+    const payload = { name: form.name, type: form.type, phone: form.phone, address: form.address, email: form.email };
 
     if (editSupplier) {
       const { error } = await supabase.from("PourelleSupplier").update(payload).eq("id", editSupplier.id);
@@ -83,20 +83,28 @@ export function SuppliersClient({ suppliers }: { suppliers: PourelleSupplierType
           <thead>
             <tr className="border-b border-zinc-200 text-left text-zinc-500">
               <th className="px-4 py-3 font-medium">{m.pour.name}</th>
-              <th className="px-4 py-3 font-medium">{m.pour.contact}</th>
+              <th className="px-4 py-3 font-medium">{m.pour.supplierType}</th>
+              <th className="px-4 py-3 font-medium">{m.pour.phone}</th>
+              <th className="px-4 py-3 font-medium">{m.pour.email}</th>
               <th className="px-4 py-3 font-medium">{m.pour.address}</th>
               <th className="px-4 py-3 font-medium">{m.pour.actions}</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-12 text-center text-zinc-400">{m.pour.empty}</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-zinc-400">{m.pour.empty}</td></tr>
             )}
             {filtered.map((s) => (
               <tr key={s.id} className="border-b border-zinc-100 hover:bg-zinc-50">
                 <td className="px-4 py-3 font-medium text-zinc-900">{s.name}</td>
-                <td className="px-4 py-3 text-zinc-600">{s.contact}</td>
-                <td className="px-4 py-3 text-zinc-600">{s.address}</td>
+                <td className="px-4 py-3">
+                  <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${s.type === "FOREIGN" ? "bg-purple-100 text-purple-700" : "bg-green-100 text-green-700"}`}>
+                    {s.type === "FOREIGN" ? m.pour.foreign : m.pour.local}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-zinc-600">{s.phone || "—"}</td>
+                <td className="px-4 py-3 text-zinc-600">{s.email || "—"}</td>
+                <td className="px-4 py-3 text-zinc-600">{s.address || "—"}</td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1">
                     <button onClick={() => openEdit(s)} className="btn-ghost btn-sm"><Pencil className="h-3.5 w-3.5" /></button>
@@ -112,17 +120,30 @@ export function SuppliersClient({ suppliers }: { suppliers: PourelleSupplierType
       {showForm && (
         <Modal open={true} title={editSupplier ? m.pour.edit : m.pour.addSupplier} onClose={() => { setShowForm(false); setEditSupplier(null); resetForm(); }}>
           <form onSubmit={handleSave} className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.name}</label>
-              <input className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.contact}</label>
-              <input className="input" value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.address}</label>
-              <input className="input" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.name}</label>
+                <input className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.supplierType}</label>
+                <select className="input" value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+                  <option value="LOCAL">{m.pour.local}</option>
+                  <option value="FOREIGN">{m.pour.foreign}</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.phone}</label>
+                <input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.email}</label>
+                <input className="input" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+              </div>
+              <div className="col-span-2">
+                <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.address}</label>
+                <input className="input" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+              </div>
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button type="button" onClick={() => { setShowForm(false); setEditSupplier(null); resetForm(); }} className="btn-secondary">{m.common.cancel}</button>

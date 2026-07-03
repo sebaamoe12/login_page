@@ -52,45 +52,27 @@ export interface AdvanceWithBalance extends SalaryAdvanceType {
 
 export interface PourelleProductType {
   id: string;
-  name: string;
   sku: string;
   category: string;
   brand: string;
   purchasePrice: string;
   sellingPrice: string;
   stock: number;
+  supplierId: string | null;
   companyId: string;
   createdAt: string;
+  Supplier?: { name: string; type: string } | null;
 }
 
 export interface PourelleSupplierType {
   id: string;
   name: string;
-  contact: string;
+  type: string;
+  phone: string;
   address: string;
+  email: string;
   companyId: string;
   createdAt: string;
-}
-
-export interface PourellePurchaseOrderType {
-  id: string;
-  supplierId: string;
-  status: string;
-  totalAmount: string;
-  companyId: string;
-  createdAt: string;
-  Supplier?: { name: string } | null;
-  items?: PourellePurchaseOrderItemType[];
-}
-
-export interface PourellePurchaseOrderItemType {
-  id: string;
-  purchaseOrderId: string;
-  productId: string;
-  quantity: number;
-  unitPrice: string;
-  companyId: string;
-  Product?: { name: string; sku: string } | null;
 }
 
 export interface PourelleSaleType {
@@ -113,5 +95,5 @@ export interface PourelleSaleItemType {
   quantity: number;
   unitPrice: string;
   companyId: string;
-  Product?: { name: string; sku: string } | null;
+  Product?: { sku: string } | null;
 }
