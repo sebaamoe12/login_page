@@ -60,7 +60,7 @@ export const m = {
   // Dashboard
   dash: {
     welcome: "Bon retour", totalEmployees: "Total employés", activeEmployees: "Employés actifs",
-    pendingAdvances: "Avances en attente", currentPayroll: "Paie en cours",
+    pendingAdvances: "Avances en attente", currentPayroll: "Total non payé",
     totalPayments: "Total des paiements", notStarted: "Pas commencée", manageEmployees: "Gérer les employés",
     manageEmployeesDesc: "Ajouter, modifier ou consulter les employés",
     salaryAdvances: "Avances sur salaire", salaryAdvancesDesc: "Examiner et approuver les demandes",

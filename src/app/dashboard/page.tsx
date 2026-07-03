@@ -13,18 +13,11 @@ export default async function DashboardPage() {
   const { count: activeCount } = await supabase.from("Employee").select("*", { count: "exact", head: true }).eq("status", "ACTIVE");
   const { count: pendingAdvances } = await supabase.from("SalaryAdvance").select("*", { count: "exact", head: true }).eq("status", "PENDING");
 
-  const now = new Date();
-  const { data: currentPayrolls } = await supabase
-    .from("EmployeePayroll")
-    .select("netSalary, status")
-    .eq("periodMonth", now.getMonth() + 1)
-    .eq("periodYear", now.getFullYear());
-
   const { data: allPayrolls } = await supabase
     .from("EmployeePayroll")
     .select("netSalary, status");
 
-  const pendingTotal = currentPayrolls?.filter((p) => p.status === "PENDING").reduce((s, p) => s + Number(p.netSalary), 0) || 0;
+  const pendingTotal = allPayrolls?.filter((p) => p.status === "PENDING").reduce((s, p) => s + Number(p.netSalary), 0) || 0;
   const totalPayments = allPayrolls?.filter((p) => p.status === "PAID").reduce((s, p) => s + Number(p.netSalary), 0) || 0;
 
   return (
