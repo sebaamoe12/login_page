@@ -36,6 +36,7 @@ export function PayrollClient({ employees, payrolls: initial, advancesByPayroll 
   const [confirmLoading, setConfirmLoading] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<PayrollRecord | null>(null);
+  const [employeeFilter, setEmployeeFilter] = useState("");
 
   const supabaseCall = async () => {
     const { createClient } = await import("@/lib/supabase/client");
@@ -92,8 +93,14 @@ export function PayrollClient({ employees, payrolls: initial, advancesByPayroll 
     (e) => `${e.firstName} ${e.lastName}`.toLowerCase().includes(search.toLowerCase())
   );
 
-  const pendingTotal = initial.filter((p) => p.status === "PENDING").reduce((s, p) => s + Number(p.netSalary), 0);
-  const paidTotal = initial.filter((p) => p.status === "PAID").reduce((s, p) => s + Number(p.netSalary), 0);
+  const filteredRecords = useMemo(() => {
+    if (!employeeFilter) return initial;
+    return initial.filter((p) => p.employeeId === employeeFilter);
+  }, [initial, employeeFilter]);
+
+  const pendingTotal = filteredRecords.filter((p) => p.status === "PENDING").reduce((s, p) => s + Number(p.netSalary), 0);
+  const paidTotal = filteredRecords.filter((p) => p.status === "PAID").reduce((s, p) => s + Number(p.netSalary), 0);
+  const pendingCount = filteredRecords.filter((p) => p.status === "PENDING").length;
 
   const hasExistingLine = (empId: string, month: number, year: number) =>
     initial.some((p) => p.employeeId === empId && p.periodMonth === month && p.periodYear === year);
@@ -171,10 +178,9 @@ export function PayrollClient({ employees, payrolls: initial, advancesByPayroll 
 
   const handlePayAll = async () => {
     setLoading(true);
-    await (await supabaseCall())
-      .from("EmployeePayroll")
-      .update({ status: "PAID" })
-      .eq("status", "PENDING");
+    const q = (await supabaseCall()).from("EmployeePayroll").update({ status: "PAID" }).eq("status", "PENDING");
+    if (employeeFilter) q.eq("employeeId", employeeFilter);
+    await q;
     toast(m.pay.payAllSuccess);
     setLoading(false);
     router.refresh();
@@ -189,8 +195,18 @@ export function PayrollClient({ employees, payrolls: initial, advancesByPayroll 
 
   return (
     <div className="space-y-6">
-      {/* Summary bar */}
+      {/* Filter + Summary bar */}
       <div className="flex flex-wrap items-center gap-4">
+        <select
+          value={employeeFilter}
+          onChange={(e) => setEmployeeFilter(e.target.value)}
+          className="input w-auto min-w-[180px]"
+        >
+          <option value="">{m.pay.allEmployees}</option>
+          {employees.map((emp) => (
+            <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</option>
+          ))}
+        </select>
         <div className="card px-4 py-3">
           <p className="text-xs text-zinc-500">{m.pay.totalPending}</p>
           <p className="text-lg font-bold text-red-600">{formatCurrency(pendingTotal)}</p>
@@ -200,7 +216,7 @@ export function PayrollClient({ employees, payrolls: initial, advancesByPayroll 
           <p className="text-lg font-bold text-green-600">{formatCurrency(paidTotal)}</p>
         </div>
         <button onClick={handlePayAll} disabled={pendingTotal === 0 || loading} className="btn-primary ml-auto">
-          <CreditCard className="h-4 w-4" /> {m.pay.payAll} ({initial.filter((p) => p.status === "PENDING").length})
+          <CreditCard className="h-4 w-4" /> {m.pay.payAll} ({pendingCount})
         </button>
       </div>
 
@@ -289,7 +305,7 @@ export function PayrollClient({ employees, payrolls: initial, advancesByPayroll 
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-200">
-            {sortedRecords.map((rec) => {
+            {filteredRecords.map((rec) => {
               const emp = Array.isArray(rec.Employee) ? rec.Employee[0] : rec.Employee;
               return (
                 <tr key={rec.id} className="hover:bg-zinc-50">
@@ -342,7 +358,7 @@ export function PayrollClient({ employees, payrolls: initial, advancesByPayroll 
                 </tr>
               );
             })}
-            {sortedRecords.length === 0 && (
+            {filteredRecords.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-12 text-center text-sm text-zinc-400">{m.pay.allPaid}</td>
               </tr>

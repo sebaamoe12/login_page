@@ -44,6 +44,7 @@ export const m = {
     confirmSuccess: "Paiement confirmé",
     noAdvances: "Aucune avance",
     employee: "Employé",
+    allEmployees: "Tous les employés",
     year: "Année",
     deleteLine: "Supprimer",
     deleteConfirm: "Supprimer cette ligne de paie ?",
