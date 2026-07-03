@@ -175,7 +175,7 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO "SalaryAdvance" (id, amount, reason, date, type, status, "employeeId", "companyId", "appliedInEmployeePayrollId")
 VALUES
   ('adv-001', 10000, 'Urgent famille', NOW(), 'SALARY', 'PENDING', 'emp-001', 'seed-company-001', NULL),
-  ('adv-002', 5000, 'Médical', NOW(), 'MEDICAL', 'APPROVED', 'emp-002', 'seed-company-001', 'pay-002'),
+  ('adv-002', 5000, 'Médical', NOW(), 'MEDICAL', 'PAID', 'emp-002', 'seed-company-001', 'pay-002'),
   ('adv-003', 8000, NULL, NOW(), 'SALARY', 'PAID', 'emp-003', 'seed-company-001', 'pay-003')
 ON CONFLICT (id) DO NOTHING;
 

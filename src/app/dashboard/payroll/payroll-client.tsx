@@ -117,7 +117,7 @@ export function PayrollClient({ employees, payrolls: initial, advancesByPayroll 
       .eq("employeeId", selectedId)
       .eq("companyId", "seed-company-001")
       .is("appliedInEmployeePayrollId", null)
-      .neq("status", "REJECTED");
+      .eq("status", "PAID");
 
     const totalAdvances = advances?.reduce((s, a) => s + Number(a.amount), 0) || 0;
     const netSalary = Math.max(Number(emp.baseSalary) - totalAdvances, 0);
