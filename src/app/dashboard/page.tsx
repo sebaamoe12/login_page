@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Users, Banknote, Wallet, DollarSign } from "lucide-react";
+import { Users, Banknote, Wallet, DollarSign, Store, Factory } from "lucide-react";
 import { m } from "@/shared/messages";
 import { formatCurrency } from "@/shared/constants";
 
@@ -84,6 +84,24 @@ export default async function DashboardPage() {
             <div><h3 className="font-semibold text-zinc-900">{m.dash.payrollRuns}</h3><p className="text-sm text-zinc-500">{m.dash.payrollRunsDesc}</p></div>
           </div>
         </a>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold text-zinc-900 mb-4">Mes entités</h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <a href="/dashboard/pourelle" className="card p-5 transition-colors hover:border-indigo-200">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-600"><Store className="h-5 w-5" /></div>
+              <div><h3 className="font-semibold text-zinc-900">🏪 Pourelle</h3><p className="text-sm text-zinc-500">Magasin de chaussures</p></div>
+            </div>
+          </a>
+          <a href="/dashboard/fabrex" className="card p-5 transition-colors hover:border-indigo-200">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-100 text-cyan-600"><Factory className="h-5 w-5" /></div>
+              <div><h3 className="font-semibold text-zinc-900">🏭 Fabrex</h3><p className="text-sm text-zinc-500">Injection plastique</p></div>
+            </div>
+          </a>
+        </div>
       </div>
     </div>
   );

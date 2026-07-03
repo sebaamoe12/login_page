@@ -1,4 +1,31 @@
 export const m = {
+  // Pourelle
+  pour: {
+    title: "Pourelle", hub: "Vue d'ensemble",
+    products: "Produits", suppliers: "Fournisseurs", purchases: "Achats", sales: "Ventes",
+    addProduct: "Nouveau produit", addSupplier: "Nouveau fournisseur", addPurchase: "Nouvelle commande", addSale: "Nouvelle vente",
+    name: "Nom", sku: "Référence", category: "Catégorie", brand: "Marque",
+    purchasePrice: "Prix d'achat", sellingPrice: "Prix de vente", stock: "Stock", qty: "Qté",
+    contact: "Contact", address: "Adresse",
+    supplier: "Fournisseur", status: "Statut", total: "Total", date: "Date",
+    pending: "En attente", received: "Reçue", cancelled: "Annulée", completed: "Terminée",
+    inStore: "Sur place", delivery: "Livraison",
+    clientName: "Nom client", clientPhone: "Téléphone", deliveryAddress: "Adresse de livraison",
+    product: "Produit", unitPrice: "Prix unitaire", actions: "Actions",
+    edit: "Modifier", delete: "Supprimer", receive: "Réceptionner",
+    addSuccess: "Ajouté avec succès", editSuccess: "Modifié avec succès", deleteSuccess: "Supprimé avec succès",
+    receiveSuccess: "Réceptionnée avec succès",
+    empty: "Aucune donnée", search: "Rechercher...",
+    revenueToday: "CA Aujourd'hui", ordersPending: "Commandes en cours",
+    productsInStock: "Produits en stock", lowStock: "Stock bas",
+    lowStockDesc: "Produits avec stock < 5",
+    confirmDelete: "Confirmer la suppression",
+    selectSupplier: "Sélectionner un fournisseur", selectProduct: "Sélectionner un produit",
+    addLine: "Ajouter une ligne", lines: "Lignes", orderTotal: "Total commande",
+    saleType: "Type de vente",
+    saleItems: "Articles", saleTotal: "Total vente",
+    delivering: "En livraison",
+  },
   // Nav
   nav: { dashboard: "Tableau de bord", employees: "Employés", payroll: "Paie", advances: "Avances", reports: "Rapports" },
   // Employee
