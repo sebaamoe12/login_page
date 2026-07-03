@@ -25,6 +25,14 @@ export const m = {
     saleType: "Type de vente",
     saleItems: "Articles", saleTotal: "Total vente",
     delivering: "En livraison",
+    // Reports
+    rep: {
+      title: "Rapports Pourelle", totalSales: "Total des ventes", salesCount: "Nombre de ventes",
+      grossMargin: "Marge brute estimée", stockValue: "Valeur du stock",
+      salesByMonth: "Ventes par mois", topProducts: "Top produits",
+      product: "Produit", qtySold: "Qté vendue", revenue: "Revenu", profit: "Profit",
+      lowStock: "Stock bas", lowStockCount: "Produits en alerte stock",
+    },
   },
   // Nav
   nav: { dashboard: "Tableau de bord", employees: "Employés", payroll: "Paie", advances: "Avances", reports: "Rapports" },
@@ -83,16 +91,19 @@ export const m = {
     historyTotal: "Historique total", period: "Période", employees: "Employés",
     totalAmount: "Montant total", employeeHistory: "Historique par employé",
     monthlyOverview: "Aperçu mensuel", empty: "Aucune donnée pour le moment",
+    payroll: "Paie", pourelle: "Pourelle",
   },
   // Dashboard
   dash: {
-    welcome: "Bon retour", totalEmployees: "Total employés", activeEmployees: "Employés actifs",
-    pendingAdvances: "Avances en attente", currentPayroll: "Total non payé",
-    totalPayments: "Total des paiements", notStarted: "Pas commencée", manageEmployees: "Gérer les employés",
+    welcome: "Bon retour", totalUnpaid: "Total non payé", paidEmployees: "Employés payés",
+    activeEmployees: "Employés actifs", salesAmount: "Montant des ventes", salesCount: "Ventes",
+    salesEvolution: "Évolution des ventes", payrollEvolution: "Évolution de la paie",
+    notStarted: "Pas commencée", manageEmployees: "Gérer les employés",
     manageEmployeesDesc: "Ajouter, modifier ou consulter les employés",
     salaryAdvances: "Avances sur salaire", salaryAdvancesDesc: "Examiner et approuver les demandes",
     payrollRuns: "Gestion de la paie", payrollRunsDesc: "Créer et gérer les périodes de paie",
     notSetUp: "Base de données non configurée", notSetUpDesc: "Exécutez d'abord supabase_setup.sql dans l'éditeur SQL Supabase.",
+    entities: "Mes entités",
   },
   // Common
   common: { loading: "Chargement...", error: "Erreur", success: "Succès", save: "Enregistrer", cancel: "Annuler", confirm: "Confirmer", close: "Fermer", DA: "DA" },
