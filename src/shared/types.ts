@@ -83,6 +83,7 @@ export interface PourelleSaleType {
   clientName: string;
   clientPhone: string;
   deliveryAddress: string;
+  tracking: string;
   companyId: string;
   createdAt: string;
   items?: PourelleSaleItemType[];

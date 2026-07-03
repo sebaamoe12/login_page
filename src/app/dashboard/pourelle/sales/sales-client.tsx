@@ -2,14 +2,27 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, PackageCheck } from "lucide-react";
+import { Plus, X, Pencil, Trash2, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { m } from "@/shared/messages";
-import { formatCurrency, POURELLE_SALE_TYPES } from "@/shared/constants";
+import { formatCurrency, POURELLE_SALE_TYPES, DELIVERY_STATUSES } from "@/shared/constants";
 
-const typeLabels: Record<string, string> = { IN_STORE: m.pour.inStore, DELIVERY: m.pour.delivery };
+const typeLabels: Record<string, string> = {
+  IN_STORE: m.pour.inStore,
+  DELIVERY: m.pour.delivery,
+  DELIVERY_COMPANY: m.pour.deliveryCompany,
+};
+
+const statusLabels: Record<string, string> = {
+  COMPLETED: m.pour.completed,
+  CANCELLED: m.pour.cancelled,
+  PENDING: m.pour.statusPending,
+  CONFIRMED: m.pour.statusConfirmed,
+  SHIPPED: m.pour.statusShipped,
+  DELIVERED: m.pour.statusDelivered,
+};
 
 export function SalesClient({
   sales, itemsBySaleId, products,
@@ -25,8 +38,11 @@ export function SalesClient({
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [tracking, setTracking] = useState("");
   const [lines, setLines] = useState<{ productId: string; quantity: number; unitPrice: string }[]>([]);
   const [loading, setLoading] = useState(false);
+  const [statusMenu, setStatusMenu] = useState<string | null>(null);
+  const [deleteSale, setDeleteSale] = useState<any>(null);
 
   const supabaseCall = async () => {
     const { createClient } = await import("@/lib/supabase/client");
@@ -50,7 +66,7 @@ export function SalesClient({
   const removeLine = (i: number) => setLines(lines.filter((_, idx) => idx !== i));
 
   const resetForm = () => {
-    setSaleType("IN_STORE"); setClientName(""); setClientPhone(""); setDeliveryAddress(""); setLines([]);
+    setSaleType("IN_STORE"); setClientName(""); setClientPhone(""); setDeliveryAddress(""); setTracking(""); setLines([]);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -60,13 +76,16 @@ export function SalesClient({
     const supabase = await supabaseCall();
     const saleId = crypto.randomUUID();
 
+    const isDelivery = saleType === "DELIVERY" || saleType === "DELIVERY_COMPANY";
+    const status = saleType === "IN_STORE" ? "COMPLETED" : "PENDING";
+
     const { error: saleError } = await supabase.from("PourelleSale").insert({
-      id: saleId, type: saleType,
-      status: saleType === "IN_STORE" ? "COMPLETED" : "DELIVERING",
+      id: saleId, type: saleType, status,
       totalAmount: total,
       clientName: saleType === "DELIVERY" ? clientName : "",
       clientPhone: saleType === "DELIVERY" ? clientPhone : "",
       deliveryAddress: saleType === "DELIVERY" ? deliveryAddress : "",
+      tracking: saleType === "DELIVERY_COMPANY" ? tracking : "",
       companyId: "seed-company-001",
     });
     if (saleError) { toast(saleError.message, "error"); setLoading(false); return; }
@@ -90,6 +109,25 @@ export function SalesClient({
     router.refresh();
   };
 
+  const handleStatusChange = async (saleId: string, newStatus: string) => {
+    const supabase = await supabaseCall();
+    const { error } = await supabase.from("PourelleSale").update({ status: newStatus }).eq("id", saleId);
+    if (error) { toast(error.message, "error"); return; }
+    setStatusMenu(null);
+    toast(m.pour.editSuccess);
+    router.refresh();
+  };
+
+  const handleDeleteSale = async () => {
+    if (!deleteSale) return;
+    const supabase = await supabaseCall();
+    await supabase.from("PourelleSaleItem").delete().eq("saleId", deleteSale.id);
+    await supabase.from("PourelleSale").delete().eq("id", deleteSale.id);
+    setDeleteSale(null);
+    toast(m.pour.deleteSuccess);
+    router.refresh();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
@@ -107,11 +145,12 @@ export function SalesClient({
               <th className="px-4 py-3 font-medium">{m.pour.clientName}</th>
               <th className="px-4 py-3 font-medium">{m.pour.total}</th>
               <th className="px-4 py-3 font-medium">{m.pour.date}</th>
+              <th className="px-4 py-3 font-medium">{m.pour.actions}</th>
             </tr>
           </thead>
           <tbody>
             {sales.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-12 text-center text-zinc-400">{m.pour.empty}</td></tr>
+              <tr><td colSpan={6} className="px-4 py-12 text-center text-zinc-400">{m.pour.empty}</td></tr>
             )}
             {sales.map((s) => (
               <tr key={s.id} className="border-b border-zinc-100 hover:bg-zinc-50">
@@ -120,10 +159,38 @@ export function SalesClient({
                     {typeLabels[s.type] || s.type}
                   </span>
                 </td>
-                <td className="px-4 py-3"><Badge status={s.status}>{s.status === "COMPLETED" ? m.pour.completed : s.status === "DELIVERING" ? m.pour.delivering : m.pour.cancelled}</Badge></td>
-                <td className="px-4 py-3 text-zinc-600">{s.clientName || "-"}</td>
+                <td className="px-4 py-3 relative">
+                  <div className="flex items-center gap-1">
+                    <Badge status={s.status}>{statusLabels[s.status] || s.status}</Badge>
+                    {(s.type === "DELIVERY" || s.type === "DELIVERY_COMPANY") && (
+                      <button onClick={() => setStatusMenu(statusMenu === s.id ? null : s.id)} className="btn-ghost btn-sm p-0.5">
+                        <ChevronDown className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                  {statusMenu === s.id && (
+                    <div className="absolute top-full left-0 z-50 mt-1 w-40 rounded-lg border bg-white py-1 shadow-lg">
+                      {DELIVERY_STATUSES.map((st) => (
+                        <button key={st}
+                          onClick={() => handleStatusChange(s.id, st)}
+                          className={`w-full px-3 py-1.5 text-left text-xs hover:bg-zinc-50 ${s.status === st ? "font-semibold text-primary" : "text-zinc-600"}`}
+                        >
+                          {statusLabels[st]}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-zinc-600">
+                  {s.type === "DELIVERY" ? s.clientName : s.type === "DELIVERY_COMPANY" ? `Suivi: ${s.tracking || "-"}` : "-"}
+                </td>
                 <td className="px-4 py-3 font-medium text-zinc-900">{formatCurrency(s.totalAmount)}</td>
                 <td className="px-4 py-3 text-zinc-600">{new Date(s.createdAt).toLocaleDateString("fr-DZ")}</td>
+                <td className="px-4 py-3">
+                  <div className="flex gap-1">
+                    <button onClick={() => setDeleteSale(s)} className="btn-ghost btn-sm text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -135,7 +202,7 @@ export function SalesClient({
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
               <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.saleType}</label>
-              <div className="flex gap-4">
+              <div className="flex flex-wrap gap-4">
                 {POURELLE_SALE_TYPES.map((t) => (
                   <label key={t} className="flex items-center gap-2 text-sm cursor-pointer">
                     <input type="radio" name="saleType" value={t} checked={saleType === t} onChange={(e) => setSaleType(e.target.value)} className="accent-primary" />
@@ -162,6 +229,13 @@ export function SalesClient({
               </div>
             )}
 
+            {saleType === "DELIVERY_COMPANY" && (
+              <div>
+                <label className="mb-1 block text-sm font-medium text-zinc-700">{m.pour.tracking}</label>
+                <input className="input" value={tracking} onChange={(e) => setTracking(e.target.value)} placeholder="Ex: YLD-123456" />
+              </div>
+            )}
+
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-zinc-700">{m.pour.saleItems}</label>
@@ -183,7 +257,7 @@ export function SalesClient({
                   <div className="w-28">
                     <input className="input text-sm" type="number" min="0" placeholder={m.pour.unitPrice} value={line.unitPrice} onChange={(e) => updateLine(i, "unitPrice", e.target.value)} />
                   </div>
-                  <button type="button" onClick={() => removeLine(i)} className="btn-ghost btn-sm text-red-500 mb-0.5"><X className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => removeLine(i)} className="btn-ghost btn-sm text-red-500 mb-0.5" title={m.pour.delete}><X className="h-4 w-4" /></button>
                 </div>
               ))}
             </div>
@@ -197,6 +271,16 @@ export function SalesClient({
               <button type="submit" disabled={loading || lines.length === 0} className="btn-primary">{loading ? m.common.loading : m.common.save}</button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {deleteSale && (
+        <Modal open={true} title={m.pour.confirmDelete} onClose={() => setDeleteSale(null)}>
+          <p className="text-sm text-zinc-600 mb-4">{m.adv.deleteConfirm}</p>
+          <div className="flex justify-end gap-3">
+            <button onClick={() => setDeleteSale(null)} className="btn-secondary">{m.common.cancel}</button>
+            <button onClick={handleDeleteSale} className="btn-danger">{m.common.confirm}</button>
+          </div>
         </Modal>
       )}
     </div>

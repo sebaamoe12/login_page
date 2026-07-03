@@ -10,11 +10,13 @@ export type AdvanceStatus = (typeof ADVANCE_STATUSES)[number];
 export const POURELLE_CATEGORIES = ["Baskets", "Sandales", "Chaussures Ville", "Bottes", "Escarpins", "Mocassins", "Sports", "Autres"] as const;
 export type PourelleCategory = (typeof POURELLE_CATEGORIES)[number];
 
-export const POURELLE_SALE_TYPES = ["IN_STORE", "DELIVERY"] as const;
+export const POURELLE_SALE_TYPES = ["IN_STORE", "DELIVERY", "DELIVERY_COMPANY"] as const;
 export type PourelleSaleType = (typeof POURELLE_SALE_TYPES)[number];
 
-export const POURELLE_SALE_STATUSES = ["COMPLETED", "CANCELLED", "DELIVERING"] as const;
+export const POURELLE_SALE_STATUSES = ["COMPLETED", "CANCELLED", "PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"] as const;
 export type PourelleSaleStatus = (typeof POURELLE_SALE_STATUSES)[number];
+
+export const DELIVERY_STATUSES = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"] as const;
 
 export const MONTH_NAMES_FR = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 export const MONTH_NAMES_SHORT = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];

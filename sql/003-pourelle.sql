@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS "PourelleSale" (
   "clientName" TEXT NOT NULL DEFAULT '',
   "clientPhone" TEXT NOT NULL DEFAULT '',
   "deliveryAddress" TEXT NOT NULL DEFAULT '',
+  tracking TEXT NOT NULL DEFAULT '',
   "companyId" TEXT NOT NULL REFERENCES "Company"(id),
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
