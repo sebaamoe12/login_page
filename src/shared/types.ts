@@ -126,10 +126,16 @@ export interface FabrexProductType {
 
 export interface FabrexClientType {
   id: string;
-  name: string;
+  companyName: string;
+  companyActivity: string;
+  RC: string;
+  NIF: string;
   phone: string;
+  fax: string;
   email: string;
   address: string;
+  banque: string;
+  numCompteBancaire: string;
   companyId: string;
   createdAt: string;
 }
@@ -176,9 +182,10 @@ export interface FabrexSaleType {
   clientId: string | null;
   totalAmount: string;
   status: string;
+  invoiceNumber: string;
   companyId: string;
   createdAt: string;
-  Client?: { name: string } | null;
+  Client?: { companyName: string; RC: string; NIF: string; address: string } | null;
   items?: FabrexSaleItemType[];
 }
 
@@ -190,6 +197,15 @@ export interface FabrexSaleItemType {
   unitPrice: string;
   companyId: string;
   Product?: { sku: string; name: string } | null;
+}
+
+export interface FabrexExpenseType {
+  id: string;
+  name: string;
+  amount: string;
+  date: string;
+  companyId: string;
+  createdAt: string;
 }
 
 export interface PourelleSaleItemType {

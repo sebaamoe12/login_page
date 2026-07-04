@@ -45,6 +45,7 @@ export default async function DashboardPage() {
   // Fabrex stats
   const { count: fabrexProductCount } = await supabase.from("FabrexProduct").select("*", { count: "exact", head: true });
   const { count: fabrexMachineCount } = await supabase.from("FabrexMachine").select("*", { count: "exact", head: true }).eq("status", "ACTIVE");
+  const { count: fabrexMaintenanceCount } = await supabase.from("FabrexMachine").select("*", { count: "exact", head: true }).eq("status", "MAINTENANCE");
   const { count: fabrexProdOrderCount } = await supabase.from("FabrexProductionOrder").select("*", { count: "exact", head: true });
   const { count: fabrexInProgressCount } = await supabase.from("FabrexProductionOrder").select("*", { count: "exact", head: true }).eq("status", "IN_PROGRESS");
   const { data: fabrexSales } = await supabase.from("FabrexSale").select("totalAmount").eq("status", "COMPLETED");
@@ -170,7 +171,7 @@ export default async function DashboardPage() {
               <div><span className="text-zinc-400">CA total</span><p className="font-medium text-zinc-900">{formatCurrency(fabrexSalesAmount)}</p></div>
               <div><span className="text-zinc-400">Produits</span><p className="font-medium text-zinc-900">{fabrexProductCount} articles</p></div>
               <div><span className="text-zinc-400">Machines</span><p className="font-medium text-zinc-900">{fabrexMachineCount} actives</p></div>
-              {fabrexInProgressCount ? <div><span className="text-amber-600">{fabrexInProgressCount} en production</span></div> : <div><span className="text-zinc-400">OP</span><p className="font-medium text-zinc-900">{fabrexProdOrderCount}</p></div>}
+              {fabrexMaintenanceCount ? <div className="flex items-center gap-1 text-red-600 font-medium"><AlertTriangle className="h-3 w-3" />{fabrexMaintenanceCount} en maintenance</div> : fabrexInProgressCount ? <div><span className="text-amber-600">{fabrexInProgressCount} en production</span></div> : <div><span className="text-zinc-400">OP</span><p className="font-medium text-zinc-900">{fabrexProdOrderCount}</p></div>}
             </div>
           </a>
           <a href="/dashboard/payroll" className="card p-5 transition-colors hover:border-indigo-200 hover:shadow-md">

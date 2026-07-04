@@ -18,7 +18,7 @@ export type PourelleSaleStatus = (typeof POURELLE_SALE_STATUSES)[number];
 
 export const DELIVERY_STATUSES = ["PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"] as const;
 
-export const FABREX_CATEGORIES = ["Automobile", "Électroménager", "Emballage", "Jouet", "Mobilier", "Construction", "Autres"] as const;
+export const FABREX_CATEGORIES = ["Semelle Caoutchouc", "Semelle EVA", "Semelle PU", "Semelle TPU", "Semelle PVC", "Autres"] as const;
 
 export const FABREX_MACHINE_STATUSES = ["ACTIVE", "MAINTENANCE", "INACTIVE"] as const;
 

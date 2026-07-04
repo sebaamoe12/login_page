@@ -1,7 +1,7 @@
 -- ============================================================
 -- 004-fabrex.sql — Module Fabrex (Injection Plastique)
 -- Production tracking: raw materials, finished products,
--- machines, production orders, sales.
+-- machines, production orders, sales, expenses.
 -- Exécuter après 001-base.sql. Idempotent.
 -- ============================================================
 
@@ -58,10 +58,16 @@ CREATE TABLE IF NOT EXISTS "FabrexProduct" (
 
 CREATE TABLE IF NOT EXISTS "FabrexClient" (
   id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
+  "companyName" TEXT NOT NULL,
+  "companyActivity" TEXT NOT NULL DEFAULT '',
+  "RC" TEXT NOT NULL DEFAULT '',
+  "NIF" TEXT NOT NULL DEFAULT '',
   phone TEXT NOT NULL DEFAULT '',
+  fax TEXT NOT NULL DEFAULT '',
   email TEXT NOT NULL DEFAULT '',
   address TEXT NOT NULL DEFAULT '',
+  banque TEXT NOT NULL DEFAULT '',
+  "numCompteBancaire" TEXT NOT NULL DEFAULT '',
   "companyId" TEXT NOT NULL REFERENCES "Company"(id),
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -104,6 +110,7 @@ CREATE TABLE IF NOT EXISTS "FabrexSale" (
   "clientId" TEXT REFERENCES "FabrexClient"(id),
   "totalAmount" DECIMAL(10,2) NOT NULL DEFAULT 0,
   status "FabrexSaleStatus" NOT NULL DEFAULT 'COMPLETED',
+  "invoiceNumber" TEXT NOT NULL DEFAULT '',
   "companyId" TEXT NOT NULL REFERENCES "Company"(id),
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -117,7 +124,46 @@ CREATE TABLE IF NOT EXISTS "FabrexSaleItem" (
   "companyId" TEXT NOT NULL REFERENCES "Company"(id)
 );
 
--- 3. Row Level Security
+CREATE TABLE IF NOT EXISTS "FabrexExpense" (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+  date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  "companyId" TEXT NOT NULL REFERENCES "Company"(id),
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 3. Migrations for existing databases
+DO $$ BEGIN
+  ALTER TABLE "Company" ADD COLUMN IF NOT EXISTS address TEXT NOT NULL DEFAULT '';
+  ALTER TABLE "Company" ADD COLUMN IF NOT EXISTS phone TEXT NOT NULL DEFAULT '';
+  ALTER TABLE "Company" ADD COLUMN IF NOT EXISTS "RC" TEXT NOT NULL DEFAULT '';
+  ALTER TABLE "Company" ADD COLUMN IF NOT EXISTS "NIF" TEXT NOT NULL DEFAULT '';
+  ALTER TABLE "Company" ADD COLUMN IF NOT EXISTS email TEXT NOT NULL DEFAULT '';
+EXCEPTION WHEN others THEN null;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "FabrexClient" RENAME COLUMN name TO "companyName";
+EXCEPTION WHEN undefined_column THEN null;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "FabrexClient" ADD COLUMN IF NOT EXISTS "companyActivity" TEXT NOT NULL DEFAULT '';
+  ALTER TABLE "FabrexClient" ADD COLUMN IF NOT EXISTS "RC" TEXT NOT NULL DEFAULT '';
+  ALTER TABLE "FabrexClient" ADD COLUMN IF NOT EXISTS "NIF" TEXT NOT NULL DEFAULT '';
+  ALTER TABLE "FabrexClient" ADD COLUMN IF NOT EXISTS fax TEXT NOT NULL DEFAULT '';
+  ALTER TABLE "FabrexClient" ADD COLUMN IF NOT EXISTS banque TEXT NOT NULL DEFAULT '';
+  ALTER TABLE "FabrexClient" ADD COLUMN IF NOT EXISTS "numCompteBancaire" TEXT NOT NULL DEFAULT '';
+EXCEPTION WHEN others THEN null;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "FabrexSale" ADD COLUMN IF NOT EXISTS "invoiceNumber" TEXT NOT NULL DEFAULT '';
+EXCEPTION WHEN others THEN null;
+END $$;
+
+-- 4. Row Level Security
 ALTER TABLE "FabrexSupplier" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "FabrexRawMaterial" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "FabrexProduct" ENABLE ROW LEVEL SECURITY;
@@ -127,6 +173,7 @@ ALTER TABLE "FabrexProductionOrder" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "FabrexProdOrderMaterial" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "FabrexSale" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "FabrexSaleItem" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "FabrexExpense" ENABLE ROW LEVEL SECURITY;
 
 -- FabrexSupplier
 DO $$ BEGIN CREATE POLICY "fabrexsupplier_select" ON "FabrexSupplier" FOR SELECT USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
@@ -168,7 +215,7 @@ DO $$ BEGIN CREATE POLICY "fabrexproductionorder_delete" ON "FabrexProductionOrd
 DO $$ BEGIN CREATE POLICY "fabrexprodordermaterial_select" ON "FabrexProdOrderMaterial" FOR SELECT USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE POLICY "fabrexprodordermaterial_insert" ON "FabrexProdOrderMaterial" FOR INSERT WITH CHECK ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE POLICY "fabrexprodordermaterial_update" ON "FabrexProdOrderMaterial" FOR UPDATE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
-DO $$ BEGIN CREATE POLICY "fabrexprodordermaterial_delete" ON "FabrexProdOrderMaterial" FOR DELETE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "fabrexprodordermaterial_delete" ON "FabrexProduct" FOR DELETE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- FabrexSale
 DO $$ BEGIN CREATE POLICY "fabrexsale_select" ON "FabrexSale" FOR SELECT USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
@@ -181,3 +228,9 @@ DO $$ BEGIN CREATE POLICY "fabrexsaleitem_select" ON "FabrexSaleItem" FOR SELECT
 DO $$ BEGIN CREATE POLICY "fabrexsaleitem_insert" ON "FabrexSaleItem" FOR INSERT WITH CHECK ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE POLICY "fabrexsaleitem_update" ON "FabrexSaleItem" FOR UPDATE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
 DO $$ BEGIN CREATE POLICY "fabrexsaleitem_delete" ON "FabrexSaleItem" FOR DELETE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+-- FabrexExpense
+DO $$ BEGIN CREATE POLICY "fabrexexpense_select" ON "FabrexExpense" FOR SELECT USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "fabrexexpense_insert" ON "FabrexExpense" FOR INSERT WITH CHECK ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "fabrexexpense_update" ON "FabrexExpense" FOR UPDATE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;
+DO $$ BEGIN CREATE POLICY "fabrexexpense_delete" ON "FabrexExpense" FOR DELETE USING ("companyId" = user_company_id()); EXCEPTION WHEN duplicate_object THEN null; END $$;

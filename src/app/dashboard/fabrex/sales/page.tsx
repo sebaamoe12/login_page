@@ -10,7 +10,7 @@ export default async function FabrexSalesPage() {
 
   const { data: sales } = await supabase
     .from("FabrexSale")
-    .select("*, Client:clientId(name)")
+    .select("*, Client:clientId(companyName, RC, NIF, address)")
     .order("createdAt", { ascending: false });
 
   const { data: saleItems } = await supabase
@@ -23,7 +23,12 @@ export default async function FabrexSalesPage() {
 
   const { data: clients } = await supabase
     .from("FabrexClient")
-    .select("id, name");
+    .select("id, companyName");
+
+  const { data: company } = await supabase
+    .from("Company")
+    .select("*")
+    .single();
 
   const itemsBySaleId: Record<string, any[]> = {};
   (saleItems || []).forEach((item) => {
@@ -39,6 +44,7 @@ export default async function FabrexSalesPage() {
         itemsBySaleId={itemsBySaleId}
         products={products || []}
         clients={clients || []}
+        company={company}
       />
     </div>
   );

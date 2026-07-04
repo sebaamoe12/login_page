@@ -7,8 +7,8 @@ import { useToast } from "@/components/ui/toast";
 import { m } from "@/shared/messages";
 import { FABREX_MACHINE_STATUSES } from "@/shared/constants";
 
-const statusLabels: Record<string, string> = { ACTIVE: m.fabr.active, MAINTENANCE: m.fabr.maintenance, INACTIVE: m.fabr.inactive };
-const statusColors: Record<string, string> = { ACTIVE: "bg-green-100 text-green-700", MAINTENANCE: "bg-amber-100 text-amber-700", INACTIVE: "bg-red-100 text-red-700" };
+const statusLabels: Record<string, string> = { ACTIVE: m.fabr.active, MAINTENANCE: m.fabr.maintenanceUrgent, INACTIVE: m.fabr.inactive };
+const statusColors: Record<string, string> = { ACTIVE: "bg-green-100 text-green-700", MAINTENANCE: "bg-red-100 text-red-700 animate-pulse", INACTIVE: "bg-zinc-100 text-zinc-500" };
 
 export function MachinesClient({ machines }: { machines: any[] }) {
   const router = useRouter();
@@ -18,6 +18,7 @@ export function MachinesClient({ machines }: { machines: any[] }) {
   const [deleteMachine, setDeleteMachine] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name: "", model: "", status: "ACTIVE" });
+  const maintenanceCount = machines.filter((m) => m.status === "MAINTENANCE").length;
 
   const supabaseCall = async () => {
     const { createClient } = await import("@/lib/supabase/client");
@@ -61,7 +62,13 @@ export function MachinesClient({ machines }: { machines: any[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        {maintenanceCount > 0 && (
+          <div className="flex items-center gap-2 text-sm text-red-600 font-medium animate-pulse">
+            ⚠ {maintenanceCount} machine{maintenanceCount > 1 ? "s" : ""} en maintenance urgente
+          </div>
+        )}
+        <div className="flex-1" />
         <button onClick={() => { setEditMachine(null); resetForm(); setShowForm(true); }} className="btn-primary"><Plus className="h-4 w-4" /> {m.fabr.addMachine}</button>
       </div>
       <div className="card overflow-x-auto">

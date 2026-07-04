@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { LayoutDashboard, Users, Wallet, Banknote, BarChart3, Menu, LogOut, ChevronDown, Store, Shirt, Building2, Receipt, Factory, Package, Box, UserCircle, Cpu, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Users, Wallet, Banknote, BarChart3, Menu, LogOut, ChevronDown, Store, Shirt, Building2, Receipt, Factory, Package, Box, UserCircle, Cpu, ClipboardList, DollarSign, Settings } from "lucide-react";
 import { ToastProvider } from "@/components/ui/toast";
 import SignOutButton from "./sign-out-button";
 import { m } from "@/shared/messages";
@@ -35,6 +35,8 @@ const navItems: NavItem[] = [
       { href: "/dashboard/fabrex/machines", label: m.fabr.machines, icon: Cpu },
       { href: "/dashboard/fabrex/production-orders", label: m.fabr.productionOrders, icon: ClipboardList },
       { href: "/dashboard/fabrex/sales", label: m.fabr.sales, icon: Receipt },
+      { href: "/dashboard/fabrex/expenses", label: m.fabr.frais, icon: DollarSign },
+      { href: "/dashboard/fabrex/company-settings", label: m.fabr.companySettings, icon: Settings },
     ],
   },
   {
