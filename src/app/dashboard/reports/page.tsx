@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { m } from "@/shared/messages";
 import { formatCurrency, MONTH_NAMES_FR, MONTH_NAMES_SHORT } from "@/shared/constants";
-import { BarChart3, Users, Wallet, Store, ShoppingBag, DollarSign, Package } from "lucide-react";
+import { BarChart3, Users, Wallet, Store, ShoppingBag, DollarSign, Package, Factory, Cpu } from "lucide-react";
 import { ReportsChart } from "./reports-chart";
 import { PourelleSalesChart } from "./reports-pourelle";
 
@@ -103,7 +103,77 @@ export default async function ReportsPage() {
   const stockValue = products?.reduce((s, p) => s + Number(p.purchasePrice) * p.stock, 0) || 0;
   const lowStockItems = products?.filter((p) => p.stock > 0 && p.stock < 5) || [];
 
-  // Gross margin estimate
+  // ── Fabrex section ──
+  const { data: fabrexSales } = await supabase
+    .from("FabrexSale")
+    .select("id, totalAmount, createdAt")
+    .eq("status", "COMPLETED");
+
+  const fabrexSalesAmount = fabrexSales?.reduce((s, sale) => s + Number(sale.totalAmount), 0) || 0;
+  const fabrexSalesCount = fabrexSales?.length || 0;
+
+  const fabrexSalesIds = fabrexSales?.map((s) => s.id) || [];
+
+  // Filter items belonging to completed sales
+  const { data: fabrexItemsFiltered } = await supabase
+    .from("FabrexSaleItem")
+    .select("productId, quantity, unitPrice, Product:productId(sku, name)")
+    .in("saleId", fabrexSalesIds);
+
+  const fabrexByProduct = new Map<string, { name: string; sku: string; qty: number; revenue: number }>();
+  fabrexItemsFiltered?.forEach((item) => {
+    const prod = Array.isArray(item.Product) ? item.Product[0] : item.Product;
+    const name = prod?.name || "—";
+    const sku = prod?.sku || "";
+    const entry = fabrexByProduct.get(item.productId) || { name, sku, qty: 0, revenue: 0 };
+    entry.qty += item.quantity;
+    entry.revenue += item.quantity * Number(item.unitPrice);
+    fabrexByProduct.set(item.productId, entry);
+  });
+  const fabrexTopProducts = Array.from(fabrexByProduct.entries())
+    .map(([id, val]) => ({ id, ...val }))
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 10);
+
+  const { data: fabrexExpenses } = await supabase
+    .from("FabrexExpense")
+    .select("amount, date");
+  const fabrexExpensesTotal = fabrexExpenses?.reduce((s, e) => s + Number(e.amount), 0) || 0;
+
+  // Fabrex sales by month
+  const fabrexSalesByMonth: Record<string, number> = {};
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    fabrexSalesByMonth[`${d.getFullYear()}-${d.getMonth()}`] = 0;
+  }
+  fabrexSales?.forEach((sale) => {
+    const d = new Date(sale.createdAt);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    if (key in fabrexSalesByMonth) fabrexSalesByMonth[key] += Number(sale.totalAmount);
+  });
+  const fabrexSalesChartData = Object.entries(fabrexSalesByMonth).map(([key, val]) => {
+    const [year, month] = key.split("-").map(Number);
+    return { label: `${MONTH_NAMES_SHORT[month]} ${year}`, value: val };
+  });
+
+  // Fabrex expenses by month
+  const fabrexExpensesByMonth: Record<string, number> = {};
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    fabrexExpensesByMonth[`${d.getFullYear()}-${d.getMonth()}`] = 0;
+  }
+  fabrexExpenses?.forEach((exp) => {
+    const d = new Date(exp.date);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    if (key in fabrexExpensesByMonth) fabrexExpensesByMonth[key] += Number(exp.amount);
+  });
+  const fabrexExpensesChartData = Object.entries(fabrexExpensesByMonth).map(([key, val]) => {
+    const [year, month] = key.split("-").map(Number);
+    return { label: `${MONTH_NAMES_SHORT[month]} ${year}`, value: val };
+  });
+
+  const { count: fabrexProductCount } = await supabase.from("FabrexProduct").select("*", { count: "exact", head: true });
+  const { count: fabrexMachineCount } = await supabase.from("FabrexMachine").select("*", { count: "exact", head: true }).eq("status", "ACTIVE");
   const grossMargin = topProducts.reduce((s, p) => s + p.profit, 0);
 
   if (error && error.code === "42P01") {
@@ -330,6 +400,89 @@ export default async function ReportsPage() {
             <p className="text-3xl font-bold text-zinc-900">{formatCurrency(stockValue)}</p>
             <p className="text-sm text-zinc-500 mt-1">{products?.length || 0} produits en stock</p>
           </div>
+        </div>
+      </div>
+
+      {/* ========== FABREX SECTION ========== */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Factory className="h-5 w-5 text-cyan-600" />
+          <h2 className="text-lg font-semibold text-zinc-900">{m.rep.fabrex}</h2>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-4 mb-6">
+          <div className="card p-5">
+            <div className="flex items-center gap-2 text-cyan-600">
+              <ShoppingBag className="h-4 w-4" />
+              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">{m.rep.fabrexSales}</p>
+            </div>
+            <p className="mt-2 text-2xl font-bold text-zinc-900">{formatCurrency(fabrexSalesAmount)}</p>
+          </div>
+          <div className="card p-5">
+            <div className="flex items-center gap-2 text-indigo-600">
+              <BarChart3 className="h-4 w-4" />
+              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">{m.rep.fabrexSalesCount}</p>
+            </div>
+            <p className="mt-2 text-2xl font-bold text-zinc-900">{fabrexSalesCount}</p>
+          </div>
+          <div className="card p-5">
+            <div className="flex items-center gap-2 text-red-600">
+              <DollarSign className="h-4 w-4" />
+              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">{m.rep.fabrexExpenses}</p>
+            </div>
+            <p className="mt-2 text-2xl font-bold text-zinc-900">{formatCurrency(fabrexExpensesTotal)}</p>
+          </div>
+          <div className="card p-5">
+            <div className="flex items-center gap-2 text-blue-600">
+              <Package className="h-4 w-4" />
+              <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">{m.rep.fabrexProducts}</p>
+            </div>
+            <p className="mt-2 text-2xl font-bold text-zinc-900">{fabrexProductCount}</p>
+            <p className="text-xs text-zinc-400 mt-1">{fabrexMachineCount} machines actives</p>
+          </div>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2 mb-6">
+          <div className="card p-5">
+            <div className="mb-3"><h2 className="font-semibold text-zinc-900">{m.rep.fabrexSalesByMonth}</h2></div>
+            <PourelleSalesChart data={fabrexSalesChartData} />
+          </div>
+
+          <div className="card">
+            <div className="px-5 py-4 border-b border-zinc-200">
+              <h2 className="font-semibold text-zinc-900">{m.rep.fabrexTopProducts}</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-zinc-50">
+                  <tr>
+                    <th className="px-5 py-3 text-left font-medium text-zinc-500">{m.fabr.sku}</th>
+                    <th className="px-5 py-3 text-left font-medium text-zinc-500">{m.fabr.product}</th>
+                    <th className="px-5 py-3 text-left font-medium text-zinc-500">{m.pour.rep.qtySold}</th>
+                    <th className="px-5 py-3 text-left font-medium text-zinc-500">{m.pour.rep.revenue}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-200">
+                  {fabrexTopProducts.map((p) => (
+                    <tr key={p.id} className="hover:bg-zinc-50">
+                      <td className="px-5 py-3 font-mono text-xs text-zinc-600">{p.sku}</td>
+                      <td className="px-5 py-3 font-medium text-zinc-900">{p.name}</td>
+                      <td className="px-5 py-3 text-zinc-600">{p.qty}</td>
+                      <td className="px-5 py-3">{formatCurrency(p.revenue)}</td>
+                    </tr>
+                  ))}
+                  {fabrexTopProducts.length === 0 && (
+                    <tr><td colSpan={4} className="px-5 py-12 text-center text-sm text-zinc-400">{m.rep.empty}</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div className="card p-5">
+          <div className="mb-3"><h2 className="font-semibold text-zinc-900">{m.rep.fabrexExpensesByMonth}</h2></div>
+          <PourelleSalesChart data={fabrexExpensesChartData} />
         </div>
       </div>
     </div>

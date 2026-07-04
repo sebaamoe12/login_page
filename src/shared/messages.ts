@@ -101,6 +101,10 @@ export const m = {
     totalAmount: "Montant total", employeeHistory: "Historique par employé",
     monthlyOverview: "Aperçu mensuel", empty: "Aucune donnée pour le moment",
     payroll: "Paie", pourelle: "Pourelle",
+    fabrex: "Fabrex", fabrexSales: "Total ventes Fabrex", fabrexSalesCount: "Nombre de ventes",
+    fabrexExpenses: "Total frais", fabrexProducts: "Produits finis",
+    fabrexSalesByMonth: "Ventes par mois", fabrexTopProducts: "Top produits Fabrex",
+    fabrexExpensesByMonth: "Frais par mois",
   },
   // Dashboard
   dash: {
