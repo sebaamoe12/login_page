@@ -97,6 +97,7 @@ export function SalesClient({
         productId: line.productId,
         quantity: line.quantity,
         unitPrice: parseFloat(line.unitPrice) || 0,
+        companyId: "seed-company-001",
       });
       if (itemError) { toast(itemError.message, "error"); setLoading(false); return; }
 
