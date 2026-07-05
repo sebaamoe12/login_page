@@ -1,0 +1,238 @@
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  background: #fff;
+  margin: 0 auto;
+  position: relative;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #1a202c;
+}
+
+.topBar {
+  height: 16px;
+  background-color: #1A365D;
+}
+
+.goldBar {
+  height: 4px;
+  background-color: #F1CA44;
+}
+
+.body {
+  padding: 24px 28px 80px;
+}
+
+.titleSection {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.logo {
+  max-width: 160px;
+  max-height: 80px;
+  object-fit: contain;
+}
+
+.meta {
+  text-align: right;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #1A365D;
+  margin: 0;
+}
+
+.metaText {
+  font-size: 12px;
+  color: #4a5568;
+  margin-top: 4px;
+}
+
+.metaLabel {
+  font-weight: 600;
+  color: #1A365D;
+}
+
+.partiesGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.partyCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+
+.partyLabel {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #F1CA44;
+  border-bottom: 2px solid #F1CA44;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+
+.partyName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1A365D;
+  margin-bottom: 4px;
+}
+
+.partyDetail {
+  font-size: 11px;
+  color: #4a5568;
+  line-height: 1.5;
+}
+
+.bankCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  display: flex;
+  gap: 24px;
+  font-size: 12px;
+}
+
+.bankItem {
+  color: #4a5568;
+}
+
+.bankLabel {
+  font-weight: 600;
+  color: #1A365D;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+  font-size: 11px;
+}
+
+.table th {
+  background-color: #1A365D;
+  color: #fff;
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+  border: 1px solid #1A365D;
+}
+
+.table td {
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.table tr:nth-child(even) td {
+  background-color: #F7FAFC;
+}
+
+.table tr:nth-child(odd) td {
+  background-color: #EDF2F7;
+}
+
+.table .numRight {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.totals {
+  text-align: right;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.totals p {
+  margin: 2px 0;
+}
+
+.totals .bold {
+  font-weight: 700;
+  font-size: 14px;
+  color: #1A365D;
+}
+
+.wordsBox {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background-color: #F7FAFC;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+}
+
+.wordsLabel {
+  font-size: 10px;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.wordsValue {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1A365D;
+}
+
+.deliveryCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  font-size: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.deliveryLabel {
+  font-weight: 600;
+  color: #1A365D;
+}
+
+.signature {
+  text-align: center;
+  padding-top: 8px;
+  border-top: 1px dashed #cbd5e0;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #718096;
+  grid-column: 1 / -1;
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  border-top: 1px solid #e2e8f0;
+  padding: 8px 28px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #a0aec0;
+}
+
+@media print {
+  .page {
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    box-shadow: none;
+    border-radius: 0;
+  }
+  .body {
+    padding: 24px 28px 80px;
+  }
+}

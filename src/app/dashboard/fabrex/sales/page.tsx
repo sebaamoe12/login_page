@@ -10,7 +10,7 @@ export default async function FabrexSalesPage() {
 
   const { data: sales } = await supabase
     .from("FabrexSale")
-    .select("*, Client:clientId(companyName, RC, NIF, address)")
+    .select("*, Client:clientId(companyName, companyActivity, RC, NIF, phone, fax, address, banque, numCompteBancaire)")
     .order("createdAt", { ascending: false });
 
   const { data: saleItems } = await supabase
@@ -23,7 +23,7 @@ export default async function FabrexSalesPage() {
 
   const { data: clients } = await supabase
     .from("FabrexClient")
-    .select("id, companyName");
+    .select("id, companyName, companyActivity, RC, NIF, phone, fax, address, banque, numCompteBancaire");
 
   const { data: company } = await supabase
     .from("Company")

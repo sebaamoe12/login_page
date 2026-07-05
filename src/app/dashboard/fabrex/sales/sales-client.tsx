@@ -7,6 +7,8 @@ import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { m } from "@/shared/messages";
 import { formatCurrency } from "@/shared/constants";
+import { Invoice } from "@/components/invoice/Invoice";
+import { amountInWords } from "@/shared/amountInWords";
 
 export function SalesClient({
   sales,
@@ -155,53 +157,59 @@ export function SalesClient({
   const invoiceContent = (sale: any) => {
     const c = sale.Client || {};
     const items = itemsBySaleId[sale.id] || [];
+    const total = Number(sale.totalAmount) || 0;
+    const tvaRate = 19;
+    const totalHT = total / (1 + tvaRate / 100);
+    const tvaAmount = total - totalHT;
 
     return (
-      <div id="invoice-print" className="bg-white p-8 text-sm text-black" style={{ fontFamily: "monospace" }}>
-        <div className="text-center mb-6">
-          <h2 className="text-xl font-bold uppercase">{company?.name || "Société"}</h2>
-          <p>{company?.address}</p>
-          <p>Tél : {company?.phone} — RC : {company?.RC} — NIF : {company?.NIF}</p>
-          <p>Email : {company?.email}</p>
-        </div>
-        <h1 className="text-lg font-bold text-center uppercase mb-6">{m.fabr.invoiceTitle}</h1>
-        <div className="flex justify-between mb-4">
-          <div>
-            <p className="font-semibold">{m.fabr.client}</p>
-            <p>{c.companyName}</p>
-            <p>{c.address}</p>
-            <p>RC : {c.RC} — NIF : {c.NIF}</p>
-          </div>
-          <div className="text-right">
-            <p className="font-semibold">{m.fabr.invoiceNumber}</p>
-            <p>{sale.invoiceNumber}</p>
-            <p className="mt-2">{new Date(sale.createdAt).toLocaleDateString("fr-DZ")}</p>
-          </div>
-        </div>
-        <table className="w-full border-collapse border border-zinc-300 mb-4">
-          <thead>
-            <tr className="bg-zinc-100">
-              <th className="border border-zinc-300 px-3 py-2 text-left">SKU</th>
-              <th className="border border-zinc-300 px-3 py-2 text-left">{m.fabr.product}</th>
-              <th className="border border-zinc-300 px-3 py-2 text-right">{m.fabr.stock}</th>
-              <th className="border border-zinc-300 px-3 py-2 text-right">PU</th>
-              <th className="border border-zinc-300 px-3 py-2 text-right">{m.fabr.total}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item: any) => (
-              <tr key={item.id}>
-                <td className="border border-zinc-300 px-3 py-2">{item.Product?.sku || "—"}</td>
-                <td className="border border-zinc-300 px-3 py-2">{item.Product?.name || "—"}</td>
-                <td className="border border-zinc-300 px-3 py-2 text-right">{item.quantity}</td>
-                <td className="border border-zinc-300 px-3 py-2 text-right">{formatCurrency(item.unitPrice)}</td>
-                <td className="border border-zinc-300 px-3 py-2 text-right">{formatCurrency(item.quantity * item.unitPrice)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="text-right text-lg font-bold">{m.fabr.saleTotal} : {formatCurrency(sale.totalAmount)}</div>
-      </div>
+      <Invoice
+        logoUrl={company?.logoUrl}
+        data={{
+          invoiceNumber: sale.invoiceNumber,
+          date: sale.createdAt,
+          seller: {
+            name: company?.name || "",
+            address: company?.address || "",
+            activity: "",
+            rc: company?.RC || "",
+            nif: company?.NIF || "",
+            tel: company?.phone || "",
+          },
+          client: {
+            name: c.companyName || "",
+            address: c.address || "",
+            activity: c.companyActivity || "",
+            rc: c.RC || "",
+            nif: c.NIF || "",
+            tel: c.phone || "",
+            fax: c.fax || "",
+          },
+          bank: {
+            name: c.banque || "",
+            account: c.numCompteBancaire || "",
+          },
+          items: items.map((item: any) => {
+            const ttcPerUnit = Number(item.unitPrice) || 0;
+            const htPerUnit = ttcPerUnit / (1 + tvaRate / 100);
+            const qty = item.quantity;
+            return {
+              designation: item.Product?.name || "—",
+              code: item.Product?.sku || "",
+              unit: "U",
+              quantity: qty,
+              unitPrice: htPerUnit,
+              totalHT: htPerUnit * qty,
+            };
+          }),
+          totalHT,
+          tvaRate,
+          tvaAmount,
+          totalTTC: total,
+          amountInWords: amountInWords(total),
+          delivery: undefined,
+        }}
+      />
     );
   };
 
