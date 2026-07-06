@@ -7,28 +7,23 @@ import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { m } from "@/shared/messages";
 import { formatCurrency } from "@/shared/constants";
-import { Invoice } from "@/components/invoice/Invoice";
-import { amountInWords } from "@/shared/amountInWords";
 
 export function SalesClient({
   sales,
   itemsBySaleId,
   products,
   clients,
-  company,
 }: {
   sales: any[];
   itemsBySaleId: Record<string, any[]>;
   products: { id: string; sku: string; name: string; sellingPrice: string; stock: number }[];
   clients: { id: string; companyName: string }[];
-  company: any;
 }) {
   const router = useRouter();
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [deleteSale, setDeleteSale] = useState<any>(null);
   const [infoSale, setInfoSale] = useState<any>(null);
-  const [printSale, setPrintSale] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [clientId, setClientId] = useState("");
   const [lines, setLines] = useState<{ productId: string; quantity: number; unitPrice: string }[]>([]);
@@ -154,65 +149,6 @@ export function SalesClient({
     CANCELLED: m.fabr.cancelled,
   };
 
-  const invoiceContent = (sale: any) => {
-    const c = sale.Client || {};
-    const items = itemsBySaleId[sale.id] || [];
-    const total = Number(sale.totalAmount) || 0;
-    const tvaRate = 19;
-    const totalHT = total / (1 + tvaRate / 100);
-    const tvaAmount = total - totalHT;
-
-    return (
-      <Invoice
-        logoUrl={company?.logoUrl}
-        data={{
-          invoiceNumber: sale.invoiceNumber,
-          date: sale.createdAt,
-          seller: {
-            name: company?.name || "",
-            address: company?.address || "",
-            activity: "",
-            rc: company?.RC || "",
-            nif: company?.NIF || "",
-            tel: company?.phone || "",
-          },
-          client: {
-            name: c.companyName || "",
-            address: c.address || "",
-            activity: c.companyActivity || "",
-            rc: c.RC || "",
-            nif: c.NIF || "",
-            tel: c.phone || "",
-            fax: c.fax || "",
-          },
-          bank: {
-            name: c.banque || "",
-            account: c.numCompteBancaire || "",
-          },
-          items: items.map((item: any) => {
-            const ttcPerUnit = Number(item.unitPrice) || 0;
-            const htPerUnit = ttcPerUnit / (1 + tvaRate / 100);
-            const qty = item.quantity;
-            return {
-              designation: item.Product?.name || "—",
-              code: item.Product?.sku || "",
-              unit: "U",
-              quantity: qty,
-              unitPrice: htPerUnit,
-              totalHT: htPerUnit * qty,
-            };
-          }),
-          totalHT,
-          tvaRate,
-          tvaAmount,
-          totalTTC: total,
-          amountInWords: amountInWords(total),
-          delivery: undefined,
-        }}
-      />
-    );
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
@@ -265,7 +201,7 @@ export function SalesClient({
                     <button onClick={() => setInfoSale(s)} className="btn-ghost btn-sm" title={m.fabr.invoice}>
                       <Info className="h-3.5 w-3.5" />
                     </button>
-                    <button onClick={() => setPrintSale(s)} className="btn-ghost btn-sm" title={m.fabr.print}>
+                    <button onClick={() => window.open("/invoice/" + s.id, "_blank")} className="btn-ghost btn-sm" title={m.fabr.print}>
                       <Printer className="h-3.5 w-3.5" />
                     </button>
                     <button onClick={() => setDeleteSale(s)} className="btn-ghost btn-sm text-red-500">
@@ -324,18 +260,6 @@ export function SalesClient({
               <button onClick={() => setInfoSale(null)} className="btn-primary">
                 {m.common.close}
               </button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {printSale && (
-        <Modal open={true} title={`${m.fabr.invoice} — ${printSale.invoiceNumber}`} onClose={() => setPrintSale(null)} size="lg">
-          <div className="space-y-4">
-            {invoiceContent(printSale)}
-            <div className="flex justify-end gap-3 pt-2 border-t border-zinc-200">
-              <button onClick={() => setPrintSale(null)} className="btn-secondary">{m.common.cancel}</button>
-              <button onClick={() => { window.print(); }} className="btn-primary"><Printer className="h-4 w-4" /> {m.fabr.print}</button>
             </div>
           </div>
         </Modal>

@@ -25,11 +25,6 @@ export default async function FabrexSalesPage() {
     .from("FabrexClient")
     .select("id, companyName, companyActivity, RC, NIF, phone, fax, address, banque, numCompteBancaire");
 
-  const { data: company } = await supabase
-    .from("Company")
-    .select("*")
-    .single();
-
   const itemsBySaleId: Record<string, any[]> = {};
   (saleItems || []).forEach((item) => {
     if (!itemsBySaleId[item.saleId]) itemsBySaleId[item.saleId] = [];
@@ -44,7 +39,6 @@ export default async function FabrexSalesPage() {
         itemsBySaleId={itemsBySaleId}
         products={products || []}
         clients={clients || []}
-        company={company}
       />
     </div>
   );
