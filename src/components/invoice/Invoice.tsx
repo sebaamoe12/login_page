@@ -52,6 +52,8 @@ export function Invoice({ data, logoUrl }: { data: InvoiceData; logoUrl?: string
         <div className={styles.bankingInfo}>
           <div><strong>Banque:</strong> {data.bank.name || "—"}</div>
           <div><strong>N° Compte:</strong> {data.bank.account || "—"}</div>
+          <div><strong>Agence:</strong> {data.bank.agence || "—"}</div>
+          <div><strong>RIB:</strong> {data.bank.rib || "—"}</div>
         </div>
       </div>
 
@@ -108,7 +110,7 @@ export function Invoice({ data, logoUrl }: { data: InvoiceData; logoUrl?: string
           <div className={styles.deliveryGrid}>
             <div><strong>Véhicule:</strong> {data.delivery.vehicle}</div>
             <div><strong>Nom du Chauffeur:</strong> {data.delivery.driver}</div>
-            <div></div>
+            <div><strong>Immatriculation:</strong> {data.delivery.immatriculation || "—"}</div>
             <div><strong>Reçu le:</strong> <span className={styles.signatureLine}></span></div>
           </div>
         </div>

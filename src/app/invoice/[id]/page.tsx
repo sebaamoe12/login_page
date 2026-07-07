@@ -32,6 +32,16 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
   const totalHT = total / (1 + tvaRate / 100);
   const tvaAmount = total - totalHT;
 
+  let delivery;
+  if (sale.moyen_livraison) {
+    const dl = typeof sale.moyen_livraison === "object" ? sale.moyen_livraison : JSON.parse(sale.moyen_livraison);
+    delivery = {
+      vehicle: dl.vehicule || "",
+      driver: dl.chauffeur || "",
+      immatriculation: dl.immatriculation || "",
+    };
+  }
+
   return (
     <div style={{ display: "flex", justifyContent: "center", padding: "40px 20px", background: "#f0f0f0", minHeight: "100vh", fontFamily: "'Inter', 'Segoe UI', sans-serif", fontSize: "12px" }}>
       <Invoice
@@ -59,6 +69,8 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           bank: {
             name: c.banque || "",
             account: c.numCompteBancaire || "",
+            agence: "",
+            rib: "",
           },
           items: items.map((item: any) => {
             const ttcPerUnit = Number(item.unitPrice) || 0;
@@ -78,7 +90,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
           tvaAmount,
           totalTTC: total,
           amountInWords: amountInWords(total),
-          delivery: undefined,
+          delivery,
         }}
       />
     </div>

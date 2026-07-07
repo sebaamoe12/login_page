@@ -235,6 +235,21 @@
   font-variant-numeric: tabular-nums;
 }
 
+.sizeRow td {
+  padding-top: 2px;
+  padding-bottom: 2px;
+  font-size: 10px;
+  color: #888;
+}
+
+.sizeRow td:first-child {
+  padding-left: 28px;
+}
+
+.sizeRow:last-child td {
+  border-bottom: none;
+}
+
 .totals {
   margin: 0 32px;
   padding: 16px 0;
@@ -326,7 +341,9 @@
 }
 
 .signatureLine {
-  border-bottom: 1px solid #999;
+  border-bottom: 1px solid #000;
+  font-family: 'Times New Roman', serif;
+  padding: 0 12px;
   min-width: 120px;
   display: inline-block;
   margin-left: 4px;
@@ -349,5 +366,9 @@
 @media print {
   .invoice {
     box-shadow: none;
+  }
+  :global(body) {
+    background: none !important;
+    padding: 0 !important;
   }
 }

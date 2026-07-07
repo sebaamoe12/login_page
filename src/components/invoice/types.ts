@@ -21,6 +21,8 @@ export interface InvoiceData {
   bank: {
     name: string;
     account: string;
+    agence?: string;
+    rib?: string;
   };
   items: Array<{
     designation: string;
@@ -38,6 +40,7 @@ export interface InvoiceData {
   delivery?: {
     vehicle: string;
     driver: string;
+    immatriculation?: string;
   };
   logoUrl?: string;
 }
