@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Trash2, Info, Printer } from "lucide-react";
+import { Plus, X, Trash2, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
@@ -200,9 +200,6 @@ export function SalesClient({
                   <div className="flex gap-1">
                     <button onClick={() => setInfoSale(s)} className="btn-ghost btn-sm" title={m.fabr.invoice}>
                       <Info className="h-3.5 w-3.5" />
-                    </button>
-                    <button onClick={() => window.open("/invoice/" + s.id, "_blank")} className="btn-ghost btn-sm" title={m.fabr.print}>
-                      <Printer className="h-3.5 w-3.5" />
                     </button>
                     <button onClick={() => setDeleteSale(s)} className="btn-ghost btn-sm text-red-500">
                       <Trash2 className="h-3.5 w-3.5" />

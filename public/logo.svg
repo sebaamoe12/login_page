@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" fill="none">
-  <rect width="200" height="60" rx="8" fill="#1A365D"/>
-  <text x="16" y="40" font-family="Inter, 'Segoe UI', sans-serif" font-size="22" font-weight="700" fill="#F1CA44" letter-spacing="1">FABREX</text>
-  <text x="118" y="40" font-family="Inter, 'Segoe UI', sans-serif" font-size="22" font-weight="300" fill="#fff" letter-spacing="1">GROUP</text>
-  <rect x="16" y="46" width="60" height="2" fill="#F1CA44" rx="1"/>
-</svg>
