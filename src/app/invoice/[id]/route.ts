@@ -65,9 +65,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Logo
     if (company?.logoUrl) {
-      html = html.replace(/src="data:image\/[^"]+"/, `src="${company.logoUrl}"`);
+      html = html.replace('/logo.png', company.logoUrl);
     } else {
-      html = html.replace(/<img[^>]*>/, "");
+      const logoPath = path.join(process.cwd(), "public", "logo.png");
+      if (fs.existsSync(logoPath)) {
+        const b64 = fs.readFileSync(logoPath).toString("base64");
+        html = html.replace('/logo.png', `data:image/png;base64,${b64}`);
+      } else {
+        html = html.replace(/<img[^>]*>/, "");
+      }
     }
 
     // Invoice meta
