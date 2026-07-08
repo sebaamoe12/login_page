@@ -145,7 +145,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       await browser.close();
     }
   } catch (error) {
-    console.error("Invoice error:", error instanceof Error ? error.message : error);
-    return new NextResponse("Failed to generate invoice", { status: 500 });
+    console.error("Invoice error:", error);
+    const msg = error instanceof Error ? error.message : String(error);
+    return new NextResponse(`Failed to generate invoice: ${msg}`, { status: 500 });
   }
 }
