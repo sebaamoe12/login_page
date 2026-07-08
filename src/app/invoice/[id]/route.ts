@@ -10,9 +10,10 @@ const formatDA = (n: number) => n.toLocaleString("fr-DZ") + " DA";
 async function launchBrowser() {
   if (process.env.VERCEL) {
     const Chromium = (await import("@sparticuz/chromium")).default;
+    const packUrl = "https://github.com/Sparticuz/chromium/releases/download/v149.0.0/chromium-v149.0.0-pack.x64.tar";
     return puppeteer.launch({
       args: Chromium.args,
-      executablePath: await Chromium.executablePath(),
+      executablePath: await Chromium.executablePath(packUrl),
       headless: "shell",
     });
   }
