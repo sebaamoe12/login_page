@@ -114,8 +114,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Inject auto-print script before </body>
     html = html.replace("</body>", `<script>
-window.onload = function() { setTimeout(function() { window.print(); }, 500); };
-window.onafterprint = function() { window.close(); };
+(function() {
+  var printTimer = function() { setTimeout(function() { window.print(); }, 800); };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', printTimer);
+  } else {
+    printTimer();
+  }
+  window.onafterprint = function() { window.close(); };
+})();
 </script>
 </body>`);
 
