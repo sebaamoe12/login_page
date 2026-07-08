@@ -114,9 +114,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     html = html.replace("[Nom de la société]", company?.name || "");
 
     // Generate PDF
-    const browser = await chromium.launch();
+    const browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle" });
+    await page.setContent(html, { waitUntil: "load" });
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
@@ -131,7 +131,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       },
     });
   } catch (error) {
-    console.error("PDF generation error:", error);
-    return NextResponse.json({ error: "Failed to generate PDF" }, { status: 500 });
+    console.error("PDF generation error:", error instanceof Error ? error.message : error);
+    const message = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
