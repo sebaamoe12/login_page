@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { chromium } from "playwright";
 import { amountInWords } from "@/shared/amountInWords";
 import fs from "fs";
 import path from "path";
@@ -18,7 +17,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       .eq("id", id)
       .single();
     if (saleError || !sale) {
-      return NextResponse.json({ error: "Sale not found" }, { status: 404 });
+      return new NextResponse("Sale not found", { status: 404 });
     }
 
     const { data: saleItems } = await supabase
@@ -92,7 +91,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
     html = html.replace(/<tbody>[\s\S]*?<\/tbody>/, `<tbody>${itemsHtml}</tbody>`);
 
-    // Totals (three [Montant] placeholders: HT, TVA, TTC)
+    // Totals
     html = html.replace("MONTANT TVA 19%", `MONTANT TVA ${tvaRate}%`);
     html = html.replace("[Montant]", formatDA(totalHT));
     html = html.replace("[Montant]", formatDA(tvaAmount));
@@ -113,26 +112,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Footer
     html = html.replace("[Nom de la société]", company?.name || "");
 
-    // Generate PDF
-    const browser = await chromium.launch({ headless: true });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "load" });
-    const pdf = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: { top: "0", right: "0", bottom: "0", left: "0" },
-    });
-    await browser.close();
+    // Inject auto-print script before </body>
+    html = html.replace("</body>", `<script>
+window.onload = function() { setTimeout(function() { window.print(); }, 500); };
+window.onafterprint = function() { window.close(); };
+</script>
+</body>`);
 
-    return new NextResponse(new Uint8Array(pdf), {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="facture-${sale.invoiceNumber || id}.pdf"`,
-      },
+    return new NextResponse(html, {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
     });
   } catch (error) {
-    console.error("PDF generation error:", error instanceof Error ? error.message : error);
-    const message = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error("Invoice error:", error instanceof Error ? error.message : error);
+    return new NextResponse("Failed to generate invoice", { status: 500 });
   }
 }

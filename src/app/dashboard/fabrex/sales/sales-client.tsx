@@ -201,7 +201,7 @@ export function SalesClient({
                     <button onClick={() => setInfoSale(s)} className="btn-ghost btn-sm" title={m.fabr.invoice}>
                       <Info className="h-3.5 w-3.5" />
                     </button>
-                    <button onClick={() => window.open("/api/invoice/" + s.id + "/pdf", "_blank")} className="btn-ghost btn-sm" title={m.fabr.print}>
+                    <button onClick={() => window.open("/invoice/" + s.id, "_blank")} className="btn-ghost btn-sm" title={m.fabr.print}>
                       <Printer className="h-3.5 w-3.5" />
                     </button>
                     <button onClick={() => setDeleteSale(s)} className="btn-ghost btn-sm text-red-500">
