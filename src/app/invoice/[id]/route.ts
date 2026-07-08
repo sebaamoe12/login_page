@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { amountInWords } from "@/shared/amountInWords";
+import { chromium } from "playwright";
 import fs from "fs";
 import path from "path";
 
@@ -111,24 +112,23 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Footer
     html = html.replace("[Nom de la société]", company?.name || "");
+    html = html.replace("[Date]", invoiceDate);
 
-    // Inject auto-print script before </body>
-    html = html.replace("</body>", `<script>
-(function() {
-  var printTimer = function() { setTimeout(function() { window.print(); }, 800); };
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', printTimer);
-  } else {
-    printTimer();
-  }
-  window.onafterprint = function() { window.close(); };
-})();
-</script>
-</body>`);
-
-    return new NextResponse(html, {
-      headers: { "Content-Type": "text/html; charset=utf-8" },
-    });
+    // Generate PDF via Playwright
+    const browser = await chromium.launch({ channel: "chrome", headless: true });
+    try {
+      const page = await browser.newPage({ viewport: { width: 800, height: 1100 } });
+      await page.setContent(html, { waitUntil: "networkidle" });
+      const pdf = await page.pdf({ format: "A4", printBackground: true });
+      return new NextResponse(new Uint8Array(pdf), {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="facture-${sale.invoiceNumber || id}.pdf"`,
+        },
+      });
+    } finally {
+      await browser.close();
+    }
   } catch (error) {
     console.error("Invoice error:", error instanceof Error ? error.message : error);
     return new NextResponse("Failed to generate invoice", { status: 500 });
