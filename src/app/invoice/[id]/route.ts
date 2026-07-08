@@ -1,11 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { amountInWords } from "@/shared/amountInWords";
-import { chromium } from "playwright";
+import puppeteer from "puppeteer-core";
 import fs from "fs";
 import path from "path";
 
 const formatDA = (n: number) => n.toLocaleString("fr-DZ") + " DA";
+
+async function launchBrowser() {
+  if (process.env.VERCEL) {
+    const Chromium = (await import("@sparticuz/chromium")).default;
+    return puppeteer.launch({
+      args: Chromium.args,
+      executablePath: await Chromium.executablePath(),
+      headless: "shell",
+    });
+  }
+  return puppeteer.launch({
+    executablePath: "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    headless: true,
+  });
+}
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -114,11 +129,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     html = html.replace("[Nom de la société]", company?.name || "");
     html = html.replace("[Date]", invoiceDate);
 
-    // Generate PDF via Playwright
-    const browser = await chromium.launch({ channel: "chrome", headless: true });
+    // Generate PDF via puppeteer-core
+    const browser = await launchBrowser();
     try {
-      const page = await browser.newPage({ viewport: { width: 800, height: 1100 } });
-      await page.setContent(html, { waitUntil: "networkidle" });
+      const page = await browser.newPage();
+      await page.setContent(html);
       const pdf = await page.pdf({ format: "A4", printBackground: true });
       return new NextResponse(new Uint8Array(pdf), {
         headers: {
