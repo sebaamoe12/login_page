@@ -52,6 +52,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     html = html.replace("[Numéro]", sale.invoiceNumber || "");
     const invoiceDate = new Date(sale.createdAt).toLocaleDateString("fr-DZ");
     html = html.replace("[Date]", invoiceDate);
+    html = html.replace("[Date]", invoiceDate);
 
     // Seller (first occurrences)
     html = html.replace("[Nom du vendeur]", company?.name || "");
