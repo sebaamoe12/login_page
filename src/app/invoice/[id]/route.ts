@@ -16,10 +16,16 @@ async function launchBrowser() {
       headless: "shell",
     });
   }
-  return puppeteer.launch({
-    executablePath: "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-    headless: true,
-  });
+  const candidates = [
+    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+  ];
+  for (const exe of candidates) {
+    if (fs.existsSync(exe)) return puppeteer.launch({ executablePath: exe, headless: true });
+  }
+  throw new Error("No Chrome/Edge installation found");
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
