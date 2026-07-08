@@ -135,7 +135,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       html = html.replace("[Véhicule]", dl.vehicule || "");
       html = html.replace("[Chauffeur]", dl.chauffeur || "");
     } else {
-      html = html.replace(/<!-- Delivery -->[\s\S]*?(?=<!-- Footer -->)/, "");
+      html = html.replace("[Véhicule]", "");
+      html = html.replace("[Chauffeur]", "");
     }
 
     // Footer
