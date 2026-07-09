@@ -5,7 +5,7 @@ import puppeteer from "puppeteer-core";
 import fs from "fs";
 import path from "path";
 
-const formatDA = (n: number) => n.toLocaleString("fr-DZ") + " DA";
+const formatDA = (n: number) => n.toFixed(2) + " DA";
 
 async function launchBrowser() {
   if (process.env.VERCEL) {
@@ -112,7 +112,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       itemsHtml += `<tr>
         <td class="item-name">${item.Product?.name || "—"}</td>
         <td>${item.Product?.sku || ""}</td>
-        <td>U</td>
+        <td>Paire</td>
         <td>${qty}</td>
         <td>${formatDA(htPerUnit)}</td>
         <td>${formatDA(htPerUnit * qty)}</td>
