@@ -105,6 +105,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Items table
     let itemsHtml = "";
+    let grandTotalQty = 0;
     for (const item of items) {
       const ttcPerUnit = Number(item.unitPrice) || 0;
       const htPerUnit = ttcPerUnit / (1 + tvaRate / 100);
@@ -119,8 +120,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       }
       if (sizes && Object.keys(sizes).length > 0) {
         const entries = Object.entries(sizes).map(([s, q]) => ({ size: s, qty: q }));
-        const totalQty = entries.reduce((s, e) => s + e.qty, 0);
-        const rowspan = entries.length + 1; // +1 for the subtotal row
+        const itemQty = entries.reduce((s, e) => s + e.qty, 0);
+        grandTotalQty += itemQty;
+        const rowspan = entries.length;
 
         entries.forEach((e, idx) => {
           if (idx === 0) {
@@ -142,17 +144,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             </tr>`;
           }
         });
-        // Subtotal row for this product
-        itemsHtml += `<tr class="subtotal-row">
-          <td></td>
-          <td><strong>Total</strong></td>
-          <td>Paire</td>
-          <td><strong>${totalQty}</strong></td>
-          <td></td>
-          <td><strong>${formatDA(htPerUnit * totalQty)}</strong></td>
-        </tr>`;
       } else {
         const qty = item.quantity;
+        grandTotalQty += qty;
         itemsHtml += `<tr>
           <td class="item-name">${item.Product?.name || "—"}</td>
           <td>${item.Product?.sku || ""}</td>
@@ -163,6 +157,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         </tr>`;
       }
     }
+    // Grand total row
+    itemsHtml += `<tr class="grand-total-row">
+      <td colspan="3"><strong>Total</strong></td>
+      <td><strong>${grandTotalQty}</strong></td>
+      <td></td>
+      <td><strong>${formatDA(totalHT)}</strong></td>
+    </tr>`;
     html = html.replace(/<tbody>[\s\S]*?<\/tbody>/, `<tbody>${itemsHtml}</tbody>`);
 
     // Totals
