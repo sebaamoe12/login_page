@@ -51,12 +51,70 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
     return createClient();
   };
 
+  const syncPayrollAdvances = async (supabase: Awaited<ReturnType<typeof supabaseCall>>, employeeId: string) => {
+    const now = new Date();
+    const periodMonth = now.getMonth() + 1;
+    const periodYear = now.getFullYear();
+
+    const { data: payroll } = await supabase
+      .from("EmployeePayroll")
+      .select("id")
+      .eq("employeeId", employeeId)
+      .eq("periodMonth", periodMonth)
+      .eq("periodYear", periodYear)
+      .eq("status", "PENDING")
+      .maybeSingle();
+
+    if (!payroll) return;
+
+    const { data: advances } = await supabase
+      .from("SalaryAdvance")
+      .select("id, amount")
+      .eq("employeeId", employeeId)
+      .eq("companyId", "seed-company-001")
+      .eq("status", "PAID")
+      .is("appliedInEmployeePayrollId", null);
+
+    const advanceIds = advances?.map((a) => a.id) || [];
+    const totalAdvances = advances?.reduce((s, a) => s + Number(a.amount), 0) || 0;
+
+    if (advanceIds.length > 0) {
+      await supabase
+        .from("SalaryAdvance")
+        .update({ appliedInEmployeePayrollId: payroll.id })
+        .in("id", advanceIds);
+    }
+
+    const { data: allLinked } = await supabase
+      .from("SalaryAdvance")
+      .select("amount")
+      .eq("employeeId", employeeId)
+      .eq("appliedInEmployeePayrollId", payroll.id);
+
+    const sum = allLinked?.reduce((s, a) => s + Number(a.amount), 0) || 0;
+
+    const { data: emp } = await supabase
+      .from("Employee")
+      .select("baseSalary")
+      .eq("id", employeeId)
+      .single();
+
+    if (emp) {
+      const netSalary = Math.max(Number(emp.baseSalary) - sum, 0);
+      await supabase
+        .from("EmployeePayroll")
+        .update({ totalAdvances: sum.toString(), deductions: sum.toString(), netSalary: netSalary.toString() })
+        .eq("id", payroll.id);
+    }
+  };
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     const supabase = await supabaseCall();
+    const employeeId = form.employeeId;
     const { error } = await supabase.from("SalaryAdvance").insert({
-      id: crypto.randomUUID(), employeeId: form.employeeId, amount: parseFloat(form.amount),
+      id: crypto.randomUUID(), employeeId, amount: parseFloat(form.amount),
       reason: form.reason || null, type: form.type, status: "PENDING", date: new Date().toISOString(), companyId: "seed-company-001",
     });
     if (error) { toast(error.message, "error"); setLoading(false); return; }
@@ -72,13 +130,17 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
 
   const handleReject = async (id: string) => {
     const supabase = await supabaseCall();
+    const { data: adv } = await supabase.from("SalaryAdvance").select("employeeId, appliedInEmployeePayrollId").eq("id", id).single();
     await supabase.from("SalaryAdvance").update({ status: "REJECTED" }).eq("id", id);
+    if (adv?.appliedInEmployeePayrollId) await syncPayrollAdvances(supabase, adv.employeeId);
     toast(m.adv.rejectSuccess); router.refresh();
   };
 
   const handleMarkPaid = async (id: string) => {
     const supabase = await supabaseCall();
     await supabase.from("SalaryAdvance").update({ status: "PAID" }).eq("id", id);
+    const { data: adv } = await supabase.from("SalaryAdvance").select("employeeId").eq("id", id).single();
+    if (adv) await syncPayrollAdvances(supabase, adv.employeeId);
     toast(m.adv.paySuccess); router.refresh();
   };
 
@@ -94,7 +156,9 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
   const handleDeleteConfirm = async () => {
     if (!deleteAdvance) return;
     const supabase = await supabaseCall();
-    await supabase.from("SalaryAdvance").delete().eq("id", deleteAdvance.id);
+    const adv = deleteAdvance;
+    await supabase.from("SalaryAdvance").delete().eq("id", adv.id);
+    if (adv.appliedInEmployeePayrollId) await syncPayrollAdvances(supabase, adv.employeeId);
     setDeleteAdvance(null); toast(m.adv.deleteSuccess); router.refresh();
   };
 
