@@ -26,10 +26,16 @@ export function SalesClient({
   const [infoSale, setInfoSale] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [clientId, setClientId] = useState("");
+  const [driverName, setDriverName] = useState("");
+  const [vehicle, setVehicle] = useState("");
+  const [matricule, setMatricule] = useState("");
   const [lines, setLines] = useState<{ productId: string; quantity: number; unitPrice: string; useSizes: boolean; sizes: { pts: number; qty: number }[] }[]>([]);
 
   const resetForm = () => {
     setClientId("");
+    setDriverName("");
+    setVehicle("");
+    setMatricule("");
     setLines([]);
   };
 
@@ -115,9 +121,14 @@ export function SalesClient({
     const totalAmount = total;
     const invoiceNumber = await generateInvoiceNumber(supabase);
 
+    const moyen_livraison = driverName || vehicle || matricule
+      ? { chauffeur: driverName, vehicule: vehicle, matricule }
+      : null;
+
     const { error: sErr } = await supabase.from("FabrexSale").insert({
       id: saleId, clientId: clientId || null, totalAmount,
       status: "COMPLETED", invoiceNumber, companyId: "seed-company-001",
+      moyen_livraison: moyen_livraison ? JSON.stringify(moyen_livraison) : null,
     });
     if (sErr) { toast(sErr.message, "error"); setLoading(false); return; }
 
@@ -328,6 +339,15 @@ export function SalesClient({
                   <option key={c.id} value={c.id}>{c.companyName}</option>
                 ))}
               </select>
+            </div>
+
+            <div className="border border-zinc-200 rounded-lg p-3 space-y-2">
+              <label className="block text-sm font-medium text-zinc-700">Livraison (optionnel)</label>
+              <div className="flex gap-2">
+                <input className="input flex-1" placeholder="Nom du chauffeur" value={driverName} onChange={(e) => setDriverName(e.target.value)} />
+                <input className="input flex-1" placeholder="Véhicule" value={vehicle} onChange={(e) => setVehicle(e.target.value)} />
+                <input className="input flex-1" placeholder="Matricule" value={matricule} onChange={(e) => setMatricule(e.target.value)} />
+              </div>
             </div>
 
             <div className="space-y-2">

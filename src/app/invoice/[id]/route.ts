@@ -178,9 +178,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (sale.moyen_livraison) {
       const dl = typeof sale.moyen_livraison === "object" ? sale.moyen_livraison : JSON.parse(sale.moyen_livraison);
       html = html.replace("[Véhicule]", dl.vehicule || "");
+      html = html.replace("[Matricule]", dl.matricule || "");
       html = html.replace("[Chauffeur]", dl.chauffeur || "");
     } else {
       html = html.replace("[Véhicule]", "");
+      html = html.replace("[Matricule]", "");
       html = html.replace("[Chauffeur]", "");
     }
 

@@ -168,4 +168,9 @@ DO $$ BEGIN
 EXCEPTION WHEN others THEN null;
 END $$;
 
+DO $$ BEGIN
+  ALTER TABLE "FabrexSale" ADD COLUMN IF NOT EXISTS "moyen_livraison" JSONB DEFAULT NULL;
+EXCEPTION WHEN others THEN null;
+END $$;
+
 

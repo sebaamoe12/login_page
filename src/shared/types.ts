@@ -185,6 +185,7 @@ export interface FabrexSaleType {
   invoiceNumber: string;
   companyId: string;
   createdAt: string;
+  moyen_livraison?: Record<string, string> | null;
   Client?: { companyName: string; RC: string; NIF: string; address: string } | null;
   items?: FabrexSaleItemType[];
 }
