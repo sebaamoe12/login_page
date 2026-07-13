@@ -144,7 +144,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         });
         // Subtotal row for this product
         itemsHtml += `<tr class="subtotal-row">
-          <td colspan="2"><strong>Total</strong></td>
+          <td></td>
+          <td><strong>Total</strong></td>
           <td>Paire</td>
           <td><strong>${totalQty}</strong></td>
           <td></td>

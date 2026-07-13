@@ -47,7 +47,6 @@ export function amountInWords(amount: number): string {
   } else {
     result += convertBelow1000(integerPart);
   }
-  result = result.trim() + " dinars algériens";
-  if (centimePart > 0) result += " et " + centimePart + " centimes";
+  result = result.trim() + " dinars algériens et " + centimePart + " centime" + (centimePart > 1 ? "s" : "");
   return result;
 }
