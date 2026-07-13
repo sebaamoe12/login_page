@@ -19,6 +19,41 @@ export default async function PayrollPage() {
     .order("periodYear", { ascending: false })
     .order("periodMonth", { ascending: false });
 
+  // Recalculate netSalary for all pending payrolls on every page load
+  if (payrolls) {
+    const pending = payrolls.filter((p) => p.status === "PENDING");
+    const empMap = new Map((employees || []).map((e) => [e.id, Number(e.baseSalary)]));
+
+    for (const rec of pending) {
+      const baseSalary = empMap.get(rec.employeeId);
+      if (baseSalary == null) continue;
+
+      const { data: advances } = await supabase
+        .from("SalaryAdvance")
+        .select("amount")
+        .eq("employeeId", rec.employeeId)
+        .eq("appliedInEmployeePayrollId", rec.id)
+        .neq("status", "REJECTED");
+
+      const sum = advances?.reduce((s, a) => s + Number(a.amount), 0) || 0;
+      const netSalary = Math.max(baseSalary - sum, 0);
+
+      if (Number(rec.netSalary) !== netSalary || Number(rec.totalAdvances) !== sum) {
+        await supabase
+          .from("EmployeePayroll")
+          .update({ totalAdvances: sum.toString(), deductions: sum.toString(), netSalary: netSalary.toString() })
+          .eq("id", rec.id);
+      }
+    }
+  }
+
+  // Re-fetch after corrections
+  const { data: payrollsCorrected } = await supabase
+    .from("EmployeePayroll")
+    .select("*, Employee(firstName, lastName, position, payDay)")
+    .order("periodYear", { ascending: false })
+    .order("periodMonth", { ascending: false });
+
   const { data: advanceLinks } = await supabase
     .from("SalaryAdvance")
     .select("id, amount, reason, appliedInEmployeePayrollId")
@@ -46,7 +81,7 @@ export default async function PayrollPage() {
       <h1 className="text-2xl font-bold text-zinc-900">{m.pay.payroll}</h1>
       <PayrollClient
         employees={employees ?? []}
-        payrolls={payrolls ?? []}
+        payrolls={payrollsCorrected ?? []}
         advancesByPayroll={advancesByPayroll}
       />
     </div>
