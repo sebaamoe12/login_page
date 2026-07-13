@@ -56,7 +56,18 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
     const periodMonth = now.getMonth() + 1;
     const periodYear = now.getFullYear();
 
-    const { data: payroll } = await supabase
+    const { data: emp } = await supabase
+      .from("Employee")
+      .select("baseSalary")
+      .eq("id", employeeId)
+      .single();
+
+    if (!emp) return;
+
+    const baseSalary = Number(emp.baseSalary);
+
+    // Get or create PENDING EmployeePayroll for this month
+    let { data: payroll } = await supabase
       .from("EmployeePayroll")
       .select("id")
       .eq("employeeId", employeeId)
@@ -65,9 +76,24 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
       .eq("status", "PENDING")
       .maybeSingle();
 
-    if (!payroll) return;
+    if (!payroll) {
+      const payrollId = crypto.randomUUID();
+      await supabase.from("EmployeePayroll").insert({
+        id: payrollId,
+        employeeId,
+        companyId: "seed-company-001",
+        periodMonth,
+        periodYear,
+        baseSalary: baseSalary.toString(),
+        totalAdvances: "0",
+        deductions: "0",
+        netSalary: baseSalary.toString(),
+        status: "PENDING",
+      });
+      payroll = { id: payrollId };
+    }
 
-    // Link all non-rejected advances for this employee this period
+    // Link all non-rejected advances to this payroll
     const { data: unlinked } = await supabase
       .from("SalaryAdvance")
       .select("id, amount")
@@ -92,20 +118,12 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
       .eq("appliedInEmployeePayrollId", payroll.id);
 
     const sum = allLinked?.reduce((s, a) => s + Number(a.amount), 0) || 0;
+    const netSalary = Math.max(baseSalary - sum, 0);
 
-    const { data: emp } = await supabase
-      .from("Employee")
-      .select("baseSalary")
-      .eq("id", employeeId)
-      .single();
-
-    if (emp) {
-      const netSalary = Math.max(Number(emp.baseSalary) - sum, 0);
-      await supabase
-        .from("EmployeePayroll")
-        .update({ totalAdvances: sum.toString(), deductions: sum.toString(), netSalary: netSalary.toString() })
-        .eq("id", payroll.id);
-    }
+    await supabase
+      .from("EmployeePayroll")
+      .update({ totalAdvances: sum.toString(), deductions: sum.toString(), netSalary: netSalary.toString() })
+      .eq("id", payroll.id);
   };
 
   const handleAdd = async (e: React.FormEvent) => {
