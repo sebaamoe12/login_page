@@ -13,11 +13,13 @@ export function SalesClient({
   itemsBySaleId,
   products,
   clients,
+  drivers,
 }: {
   sales: any[];
   itemsBySaleId: Record<string, any[]>;
   products: { id: string; sku: string; name: string; sellingPrice: string; stock: number }[];
   clients: { id: string; companyName: string }[];
+  drivers: { id: string; name: string; vehicle: string; matricule: string }[];
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -26,16 +28,12 @@ export function SalesClient({
   const [infoSale, setInfoSale] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [clientId, setClientId] = useState("");
-  const [driverName, setDriverName] = useState("");
-  const [vehicle, setVehicle] = useState("");
-  const [matricule, setMatricule] = useState("");
+  const [driverId, setDriverId] = useState("");
   const [lines, setLines] = useState<{ productId: string; quantity: number; unitPrice: string; useSizes: boolean; sizes: { pts: number; qty: number }[] }[]>([]);
 
   const resetForm = () => {
     setClientId("");
-    setDriverName("");
-    setVehicle("");
-    setMatricule("");
+    setDriverId("");
     setLines([]);
   };
 
@@ -121,9 +119,11 @@ export function SalesClient({
     const totalAmount = total;
     const invoiceNumber = await generateInvoiceNumber(supabase);
 
-    const moyen_livraison = driverName || vehicle || matricule
-      ? { chauffeur: driverName, vehicule: vehicle, matricule }
-      : null;
+    let moyen_livraison: { chauffeur: string; vehicule: string; matricule: string } | null = null;
+    if (driverId) {
+      const d = drivers.find((x) => x.id === driverId);
+      if (d) moyen_livraison = { chauffeur: d.name, vehicule: d.vehicle, matricule: d.matricule };
+    }
 
     const { error: sErr } = await supabase.from("FabrexSale").insert({
       id: saleId, clientId: clientId || null, totalAmount,
@@ -341,13 +341,14 @@ export function SalesClient({
               </select>
             </div>
 
-            <div className="border border-zinc-200 rounded-lg p-3 space-y-2">
-              <label className="block text-sm font-medium text-zinc-700">Livraison (optionnel)</label>
-              <div className="flex gap-2">
-                <input className="input flex-1" placeholder="Nom du chauffeur" value={driverName} onChange={(e) => setDriverName(e.target.value)} />
-                <input className="input flex-1" placeholder="Véhicule" value={vehicle} onChange={(e) => setVehicle(e.target.value)} />
-                <input className="input flex-1" placeholder="Matricule" value={matricule} onChange={(e) => setMatricule(e.target.value)} />
-              </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-zinc-700">Chauffeur (optionnel)</label>
+              <select className="input" value={driverId} onChange={(e) => setDriverId(e.target.value)}>
+                <option value="">Aucun chauffeur</option>
+                {drivers.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name} — {d.vehicle} ({d.matricule})</option>
+                ))}
+              </select>
             </div>
 
             <div className="space-y-2">

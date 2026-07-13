@@ -124,6 +124,15 @@ CREATE TABLE IF NOT EXISTS "FabrexSaleItem" (
   "companyId" TEXT NOT NULL REFERENCES "Company"(id)
 );
 
+CREATE TABLE IF NOT EXISTS "FabrexDriver" (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  vehicle TEXT NOT NULL DEFAULT '',
+  matricule TEXT NOT NULL DEFAULT '',
+  "companyId" TEXT NOT NULL REFERENCES "Company"(id),
+  "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS "FabrexExpense" (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -170,6 +179,11 @@ END $$;
 
 DO $$ BEGIN
   ALTER TABLE "FabrexSale" ADD COLUMN IF NOT EXISTS "moyen_livraison" JSONB DEFAULT NULL;
+EXCEPTION WHEN others THEN null;
+END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "FabrexSaleItem" ADD COLUMN IF NOT EXISTS sizes JSONB DEFAULT NULL;
 EXCEPTION WHEN others THEN null;
 END $$;
 

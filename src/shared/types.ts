@@ -201,6 +201,15 @@ export interface FabrexSaleItemType {
   Product?: { sku: string; name: string } | null;
 }
 
+export interface FabrexDriverType {
+  id: string;
+  name: string;
+  vehicle: string;
+  matricule: string;
+  companyId: string;
+  createdAt: string;
+}
+
 export interface FabrexExpenseType {
   id: string;
   name: string;
