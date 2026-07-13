@@ -195,6 +195,7 @@ export interface FabrexSaleItemType {
   productId: string;
   quantity: number;
   unitPrice: string;
+  sizes: Record<string, number> | null;
   companyId: string;
   Product?: { sku: string; name: string } | null;
 }
