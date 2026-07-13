@@ -151,9 +151,9 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
 
   const handleReject = async (id: string) => {
     const supabase = await supabaseCall();
-    const { data: adv } = await supabase.from("SalaryAdvance").select("employeeId, appliedInEmployeePayrollId").eq("id", id).single();
+    const { data: adv } = await supabase.from("SalaryAdvance").select("employeeId").eq("id", id).single();
     await supabase.from("SalaryAdvance").update({ status: "REJECTED" }).eq("id", id);
-    if (adv?.appliedInEmployeePayrollId) await syncPayrollAdvances(supabase, adv.employeeId);
+    if (adv) await syncPayrollAdvances(supabase, adv.employeeId);
     toast(m.adv.rejectSuccess); router.refresh();
   };
 
@@ -180,7 +180,7 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
     const supabase = await supabaseCall();
     const adv = deleteAdvance;
     await supabase.from("SalaryAdvance").delete().eq("id", adv.id);
-    if (adv.appliedInEmployeePayrollId) await syncPayrollAdvances(supabase, adv.employeeId);
+    await syncPayrollAdvances(supabase, adv.employeeId);
     setDeleteAdvance(null); toast(m.adv.deleteSuccess); router.refresh();
   };
 
