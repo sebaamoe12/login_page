@@ -55,10 +55,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const c = sale.Client || {};
     const items = saleItems || [];
-    const total = Number(sale.totalAmount) || 0;
+    const totalHT = Number(sale.totalAmount) || 0;
     const tvaRate = 19;
-    const totalHT = total / (1 + tvaRate / 100);
-    const tvaAmount = total - totalHT;
+    const tvaAmount = totalHT * tvaRate / 100;
+    const totalTTC = totalHT + tvaAmount;
 
     const templatePath = path.join(process.cwd(), "invoice.html");
     let html = fs.readFileSync(templatePath, "utf-8");
@@ -107,8 +107,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     let itemsHtml = "";
     let grandTotalQty = 0;
     for (const item of items) {
-      const ttcPerUnit = Number(item.unitPrice) || 0;
-      const htPerUnit = ttcPerUnit / (1 + tvaRate / 100);
+      const htPerUnit = Number(item.unitPrice) || 0;
 
       let sizes: Record<string, number> | null = null;
       if (item.sizes) {
@@ -170,10 +169,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     html = html.replace("MONTANT TVA 19%", `MONTANT TVA ${tvaRate}%`);
     html = html.replace("[Montant]", formatDA(totalHT));
     html = html.replace("[Montant]", formatDA(tvaAmount));
-    html = html.replace("[Montant]", formatDA(total));
+    html = html.replace("[Montant]", formatDA(totalTTC));
 
     // Amount in words
-    html = html.replace("[Montant en toutes lettres]", amountInWords(total));
+    html = html.replace("[Montant en toutes lettres]", amountInWords(totalTTC));
 
     // Delivery
     if (sale.moyen_livraison) {
