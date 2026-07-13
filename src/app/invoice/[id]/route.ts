@@ -45,7 +45,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { data: saleItems } = await supabase
       .from("FabrexSaleItem")
-      .select("*, Product:productId(sku, name)")
+      .select("*, Product:productId(sku, name, id)")
       .eq("saleId", id);
 
     const { data: company } = await supabase
@@ -108,15 +108,59 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     for (const item of items) {
       const ttcPerUnit = Number(item.unitPrice) || 0;
       const htPerUnit = ttcPerUnit / (1 + tvaRate / 100);
-      const qty = item.quantity;
-      itemsHtml += `<tr>
-        <td class="item-name">${item.Product?.name || "—"}</td>
-        <td>${item.Product?.sku || ""}</td>
-        <td>Paire</td>
-        <td>${qty}</td>
-        <td>${formatDA(htPerUnit)}</td>
-        <td>${formatDA(htPerUnit * qty)}</td>
-      </tr>`;
+
+      let sizes: Record<string, number> | null = null;
+      if (item.sizes) {
+        if (typeof item.sizes === "string") {
+          try { sizes = JSON.parse(item.sizes); } catch { sizes = null; }
+        } else {
+          sizes = item.sizes;
+        }
+      }
+      if (sizes && Object.keys(sizes).length > 0) {
+        const entries = Object.entries(sizes).map(([s, q]) => ({ size: s, qty: q }));
+        const totalQty = entries.reduce((s, e) => s + e.qty, 0);
+        const rowspan = entries.length + 1; // +1 for the subtotal row
+
+        entries.forEach((e, idx) => {
+          if (idx === 0) {
+            itemsHtml += `<tr>
+              <td class="item-name" rowspan="${rowspan}">${item.Product?.name || "—"}</td>
+              <td>${e.size}</td>
+              <td>Paire</td>
+              <td>${e.qty}</td>
+              <td>${formatDA(htPerUnit)}</td>
+              <td>${formatDA(htPerUnit * e.qty)}</td>
+            </tr>`;
+          } else {
+            itemsHtml += `<tr>
+              <td>${e.size}</td>
+              <td>Paire</td>
+              <td>${e.qty}</td>
+              <td>${formatDA(htPerUnit)}</td>
+              <td>${formatDA(htPerUnit * e.qty)}</td>
+            </tr>`;
+          }
+        });
+        // Subtotal row for this product
+        itemsHtml += `<tr class="subtotal-row">
+          <td colspan="2"><strong>Total</strong></td>
+          <td>Paire</td>
+          <td><strong>${totalQty}</strong></td>
+          <td></td>
+          <td><strong>${formatDA(htPerUnit * totalQty)}</strong></td>
+        </tr>`;
+      } else {
+        const qty = item.quantity;
+        itemsHtml += `<tr>
+          <td class="item-name">${item.Product?.name || "—"}</td>
+          <td>${item.Product?.sku || ""}</td>
+          <td>Paire</td>
+          <td>${qty}</td>
+          <td>${formatDA(htPerUnit)}</td>
+          <td>${formatDA(htPerUnit * qty)}</td>
+        </tr>`;
+      }
     }
     html = html.replace(/<tbody>[\s\S]*?<\/tbody>/, `<tbody>${itemsHtml}</tbody>`);
 

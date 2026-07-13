@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Trash2, Info, Printer } from "lucide-react";
+import { Plus, X, Trash2, Info, Printer, ToggleLeft, ToggleRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
@@ -26,7 +26,7 @@ export function SalesClient({
   const [infoSale, setInfoSale] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [clientId, setClientId] = useState("");
-  const [lines, setLines] = useState<{ productId: string; quantity: number; unitPrice: string }[]>([]);
+  const [lines, setLines] = useState<{ productId: string; quantity: number; unitPrice: string; useSizes: boolean; sizes: { pts: number; qty: number }[] }[]>([]);
 
   const resetForm = () => {
     setClientId("");
@@ -38,8 +38,35 @@ export function SalesClient({
     return createClient();
   };
 
+  const addSize = (i: number) => {
+    setLines(lines.map((line, idx) => {
+      if (idx !== i) return line;
+      return { ...line, sizes: [...line.sizes, { pts: 0, qty: 1 }] };
+    }));
+  };
+
+  const updateSize = (lineI: number, sizeI: number, field: string, value: string) => {
+    setLines(lines.map((line, idx) => {
+      if (idx !== lineI) return line;
+      const newSizes = line.sizes.map((s, si) => {
+        if (si !== sizeI) return s;
+        return { ...s, [field]: field === "pts" || field === "qty" ? parseInt(value) || 0 : value };
+      });
+      const totalQty = newSizes.reduce((acc, s) => acc + s.qty, 0);
+      return { ...line, sizes: newSizes, quantity: totalQty };
+    }));
+  };
+
+  const removeSize = (lineI: number, sizeI: number) => {
+    setLines(lines.map((line, idx) => {
+      if (idx !== lineI) return line;
+      const newSizes = line.sizes.filter((_, si) => si !== sizeI);
+      return { ...line, sizes: newSizes, quantity: newSizes.reduce((acc, s) => acc + s.qty, 0) };
+    }));
+  };
+
   const addLine = () => {
-    setLines([...lines, { productId: "", quantity: 1, unitPrice: "" }]);
+    setLines([...lines, { productId: "", quantity: 1, unitPrice: "", useSizes: false, sizes: [] }]);
   };
 
   const updateLine = (i: number, field: string, value: string) => {
@@ -55,11 +82,22 @@ export function SalesClient({
     setLines(updated);
   };
 
+  const toggleSizes = (i: number) => {
+    setLines(lines.map((line, idx) => {
+      if (idx !== i) return line;
+      const use = !line.useSizes;
+      return { ...line, useSizes: use, sizes: use ? [{ pts: 0, qty: 1 }] : [] };
+    }));
+  };
+
   const removeLine = (i: number) => {
     setLines(lines.filter((_, idx) => idx !== i));
   };
 
-  const total = lines.reduce((sum, line) => sum + (line.quantity * (parseFloat(line.unitPrice) || 0)), 0);
+  const total = lines.reduce((sum, ln) => {
+    const qty = ln.useSizes ? ln.sizes.reduce((s, z) => s + z.qty, 0) : ln.quantity;
+    return sum + qty * (parseFloat(ln.unitPrice) || 0);
+  }, 0);
 
   const generateInvoiceNumber = async (supabase: any): Promise<string> => {
     const year = new Date().getFullYear();
@@ -77,26 +115,33 @@ export function SalesClient({
     const totalAmount = total;
     const invoiceNumber = await generateInvoiceNumber(supabase);
 
-    const { error: saleError } = await supabase.from("FabrexSale").insert({
-      id: saleId,
-      clientId: clientId || null,
-      totalAmount,
-      status: "COMPLETED",
-      invoiceNumber,
-      companyId: "seed-company-001",
+    const { error: sErr } = await supabase.from("FabrexSale").insert({
+      id: saleId, clientId: clientId || null, totalAmount,
+      status: "COMPLETED", invoiceNumber, companyId: "seed-company-001",
     });
-    if (saleError) { toast(saleError.message, "error"); setLoading(false); return; }
+    if (sErr) { toast(sErr.message, "error"); setLoading(false); return; }
 
     for (const line of lines) {
-      const { error: itemError } = await supabase.from("FabrexSaleItem").insert({
-        id: crypto.randomUUID(),
-        saleId,
-        productId: line.productId,
-        quantity: line.quantity,
-        unitPrice: parseFloat(line.unitPrice) || 0,
+      const qty = line.useSizes ? line.sizes.reduce((s, z) => s + z.qty, 0) : line.quantity;
+
+      let sizesJson = null;
+      if (line.useSizes) {
+        const obj: Record<string, number> = {};
+        for (const s of line.sizes) {
+          if (s.pts && s.qty) obj[String(s.pts)] = s.qty;
+        }
+        if (Object.keys(obj).length > 0) {
+          sizesJson = obj;
+        }
+      }
+
+      const { error: iErr } = await supabase.from("FabrexSaleItem").insert({
+        id: crypto.randomUUID(), saleId, productId: line.productId,
+        quantity: qty, unitPrice: parseFloat(line.unitPrice) || 0,
+        sizes: sizesJson ? JSON.stringify(sizesJson) : null,
         companyId: "seed-company-001",
       });
-      if (itemError) { toast(itemError.message, "error"); setLoading(false); return; }
+      if (iErr) { toast(iErr.message, "error"); break; }
 
       const { data: product } = await supabase
         .from("FabrexProduct")
@@ -106,13 +151,12 @@ export function SalesClient({
       if (product) {
         await supabase
           .from("FabrexProduct")
-          .update({ stock: product.stock - line.quantity })
+          .update({ stock: product.stock - qty })
           .eq("id", line.productId);
       }
     }
 
     toast(m.fabr.addSuccess);
-    setShowForm(false);
     resetForm();
     setLoading(false);
     router.refresh();
@@ -229,31 +273,39 @@ export function SalesClient({
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-zinc-200 text-left text-zinc-500">
-                  <th className="px-3 py-2 font-medium">SKU</th>
                   <th className="px-3 py-2 font-medium">{m.fabr.saleItems}</th>
-                  <th className="px-3 py-2 font-medium">{m.fabr.stock}</th>
+                  <th className="px-3 py-2 font-medium">Pointure / Qté</th>
+                  <th className="px-3 py-2 font-medium">Qté totale</th>
                   <th className="px-3 py-2 font-medium">Prix unitaire</th>
                   <th className="px-3 py-2 font-medium">{m.fabr.total}</th>
                 </tr>
               </thead>
               <tbody>
-                {(itemsBySaleId[infoSale.id] || []).map((item: any) => (
-                  <tr key={item.id} className="border-b border-zinc-100">
-                    <td className="px-3 py-2 font-medium text-zinc-900">
-                      {item.Product?.sku || "—"}
-                    </td>
-                    <td className="px-3 py-2 text-zinc-600">
-                      {item.Product?.name || "—"}
-                    </td>
-                    <td className="px-3 py-2 text-zinc-600">{item.quantity}</td>
-                    <td className="px-3 py-2 text-zinc-600">
-                      {formatCurrency(item.unitPrice)}
-                    </td>
-                    <td className="px-3 py-2 text-zinc-600">
-                      {formatCurrency(item.quantity * item.unitPrice)}
-                    </td>
-                  </tr>
-                ))}
+                {(itemsBySaleId[infoSale.id] || []).map((item: any) => {
+                  let szEntries: [string, number][] = [];
+                  if (item.sizes) {
+                    let sizes = item.sizes;
+                    if (typeof sizes === 'string') {
+                      try { sizes = JSON.parse(sizes); } catch {}
+                    }
+                    if (typeof sizes === 'object' && !Array.isArray(sizes)) {
+                      szEntries = Object.entries(sizes);
+                    }
+                  }
+                  return (
+                    <tr key={item.id} className="border-b border-zinc-100">
+                      <td className="px-3 py-2 text-zinc-600">{item.Product?.name || "—"}</td>
+                      <td className="px-3 py-2 text-zinc-600">
+                        {szEntries.length > 0
+                          ? szEntries.map(([sz, qty], i) => <div key={i}>{sz} x {qty}{i < szEntries.length - 1 ? "," : ""}</div>)
+                          : <div>{item.quantity} x</div>}
+                      </td>
+                      <td className="px-3 py-2 text-zinc-600">{item.quantity}</td>
+                      <td className="px-3 py-2 text-zinc-600">{formatCurrency(item.unitPrice)}</td>
+                      <td className="px-3 py-2 text-zinc-600">{formatCurrency(item.quantity * item.unitPrice)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             <div className="flex justify-end pt-2">
@@ -281,24 +333,43 @@ export function SalesClient({
             <div className="space-y-2">
               <label className="mb-1 block text-sm font-medium text-zinc-700">{m.fabr.saleItems}</label>
               {lines.map((line, i) => (
-                <div key={i} className="flex gap-2 items-end">
-                  <div className="flex-1">
-                    <select className="input" value={line.productId} onChange={(e) => updateLine(i, "productId", e.target.value)} required>
-                      <option value="">{m.fabr.selectProduct}</option>
-                      {products.map((p) => (
-                        <option key={p.id} value={p.id}>{p.sku} - {p.name} ({m.fabr.stock}: {p.stock})</option>
+                <div key={i} className="space-y-2 p-2 border border-zinc-200 rounded-lg">
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <select className="input" value={line.productId} onChange={(e) => updateLine(i, "productId", e.target.value)} required>
+                        <option value="">{m.fabr.selectProduct}</option>
+                        {products.map((p) => (
+                          <option key={p.id} value={p.id}>{p.sku} - {p.name} ({m.fabr.stock}: {p.stock})</option>
+                        ))}
+                      </select>
+                    </div>
+                    {!line.useSizes && (
+                      <div className="w-20">
+                        <input className="input" type="number" min="1" value={line.quantity} onChange={(e) => updateLine(i, "quantity", e.target.value)} required />
+                      </div>
+                    )}
+                    <div className="w-28">
+                      <input className="input" type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateLine(i, "unitPrice", e.target.value)} required />
+                    </div>
+                    <button type="button" onClick={() => toggleSizes(i)} className="btn-ghost btn-sm" title={line.useSizes ? "Mode simple" : "Mode pointure"}>
+                      {line.useSizes ? <ToggleRight className="h-4 w-4 text-primary" /> : <ToggleLeft className="h-4 w-4 text-zinc-400" />}
+                    </button>
+                    <button type="button" onClick={() => removeLine(i)} className="btn-ghost btn-sm text-red-500 mb-0.5">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {line.useSizes && (
+                    <div className="space-y-1 ml-2">
+                      {line.sizes.map((sz, si) => (
+                        <div key={si} className="flex gap-2 items-center">
+                          <input className="input w-20" type="number" min="1" placeholder="Pointure" value={sz.pts || ""} onChange={(e) => updateSize(i, si, "pts", e.target.value)} />
+                          <input className="input w-20" type="number" min="1" placeholder="Qté" value={sz.qty || ""} onChange={(e) => updateSize(i, si, "qty", e.target.value)} />
+                          <button type="button" onClick={() => removeSize(i, si)} className="btn-ghost btn-sm text-red-500"><X className="h-3 w-3" /></button>
+                        </div>
                       ))}
-                    </select>
-                  </div>
-                  <div className="w-20">
-                    <input className="input" type="number" min="1" value={line.quantity} onChange={(e) => updateLine(i, "quantity", e.target.value)} required />
-                  </div>
-                  <div className="w-28">
-                    <input className="input" type="number" min="0" step="0.01" value={line.unitPrice} onChange={(e) => updateLine(i, "unitPrice", e.target.value)} required />
-                  </div>
-                  <button type="button" onClick={() => removeLine(i)} className="btn-ghost btn-sm text-red-500 mb-0.5">
-                    <X className="h-4 w-4" />
-                  </button>
+                      <button type="button" onClick={() => addSize(i)} className="btn-secondary btn-xs"><Plus className="h-3 w-3" /> Ajouter pointure</button>
+                    </div>
+                  )}
                 </div>
               ))}
               <button type="button" onClick={addLine} className="btn-secondary btn-sm">

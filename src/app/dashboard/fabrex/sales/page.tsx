@@ -15,7 +15,7 @@ export default async function FabrexSalesPage() {
 
   const { data: saleItems } = await supabase
     .from("FabrexSaleItem")
-    .select("*, Product:productId(sku, name)");
+    .select("*, Product:productId(sku, name, id)");
 
   const { data: products } = await supabase
     .from("FabrexProduct")
