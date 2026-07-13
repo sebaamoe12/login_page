@@ -67,24 +67,24 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
 
     if (!payroll) return;
 
-    const { data: advances } = await supabase
+    // Link all non-rejected advances for this employee this period
+    const { data: unlinked } = await supabase
       .from("SalaryAdvance")
       .select("id, amount")
       .eq("employeeId", employeeId)
       .eq("companyId", "seed-company-001")
-      .eq("status", "PAID")
+      .neq("status", "REJECTED")
       .is("appliedInEmployeePayrollId", null);
 
-    const advanceIds = advances?.map((a) => a.id) || [];
-    const totalAdvances = advances?.reduce((s, a) => s + Number(a.amount), 0) || 0;
-
-    if (advanceIds.length > 0) {
+    const unlinkedIds = unlinked?.map((a) => a.id) || [];
+    if (unlinkedIds.length > 0) {
       await supabase
         .from("SalaryAdvance")
         .update({ appliedInEmployeePayrollId: payroll.id })
-        .in("id", advanceIds);
+        .in("id", unlinkedIds);
     }
 
+    // Recalculate total from all linked advances
     const { data: allLinked } = await supabase
       .from("SalaryAdvance")
       .select("amount")
@@ -118,6 +118,7 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
       reason: form.reason || null, type: form.type, status: "PENDING", date: new Date().toISOString(), companyId: "seed-company-001",
     });
     if (error) { toast(error.message, "error"); setLoading(false); return; }
+    await syncPayrollAdvances(supabase, employeeId);
     setShowForm(false); setForm({ employeeId: "", amount: "", type: "SALARY", reason: "" }); setLoading(false);
     toast(m.adv.addSuccess); router.refresh();
   };
@@ -125,6 +126,8 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
   const handleApprove = async (id: string) => {
     const supabase = await supabaseCall();
     await supabase.from("SalaryAdvance").update({ status: "APPROVED" }).eq("id", id);
+    const { data: adv } = await supabase.from("SalaryAdvance").select("employeeId").eq("id", id).single();
+    if (adv) await syncPayrollAdvances(supabase, adv.employeeId);
     toast(m.adv.approveSuccess); router.refresh();
   };
 
@@ -150,6 +153,7 @@ export function AdvancesClient({ advances, employees }: { advances: Advance[]; e
     const supabase = await supabaseCall();
     const { error } = await supabase.from("SalaryAdvance").update({ amount: parseFloat(form.amount), reason: form.reason, type: form.type }).eq("id", editAdvance.id);
     if (error) { toast(error.message, "error"); setLoading(false); return; }
+    await syncPayrollAdvances(supabase, editAdvance.employeeId);
     setEditAdvance(null); setLoading(false); toast(m.adv.editSuccess); router.refresh();
   };
 
