@@ -29,11 +29,13 @@ export function SalesClient({
   const [loading, setLoading] = useState(false);
   const [clientId, setClientId] = useState("");
   const [driverId, setDriverId] = useState("");
+  const [stockErrors, setStockErrors] = useState<Record<number, string>>({});
   const [lines, setLines] = useState<{ productId: string; quantity: number; unitPrice: string; useSizes: boolean; sizes: { pts: number; qty: number }[] }[]>([]);
 
   const resetForm = () => {
     setClientId("");
     setDriverId("");
+    setStockErrors({});
     setLines([]);
   };
 
@@ -84,6 +86,7 @@ export function SalesClient({
       return newLine;
     });
     setLines(updated);
+    setStockErrors((prev) => { const next = { ...prev }; delete next[i]; return next; });
   };
 
   const toggleSizes = (i: number) => {
@@ -113,6 +116,23 @@ export function SalesClient({
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    setStockErrors({});
+
+    const errors: Record<number, string> = {};
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const qty = line.useSizes ? line.sizes.reduce((s, z) => s + z.qty, 0) : line.quantity;
+      const product = products.find((p) => p.id === line.productId);
+      if (product && qty > product.stock) {
+        errors[i] = `Stock insuffisant pour "${product.name}" : demandé ${qty}, disponible ${product.stock}`;
+      }
+    }
+    if (Object.keys(errors).length > 0) {
+      setStockErrors(errors);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     const supabase = await supabaseCall();
     const saleId = crypto.randomUUID();
@@ -357,12 +377,13 @@ export function SalesClient({
                 <div key={i} className="space-y-2 p-2 border border-zinc-200 rounded-lg">
                   <div className="flex gap-2 items-end">
                     <div className="flex-1">
-                      <select className="input" value={line.productId} onChange={(e) => updateLine(i, "productId", e.target.value)} required>
+                      <select className="input" value={line.productId} onChange={(e) => { updateLine(i, "productId", e.target.value); setStockErrors((prev) => { const next = { ...prev }; delete next[i]; return next; }); }} required>
                         <option value="">{m.fabr.selectProduct}</option>
                         {products.map((p) => (
                           <option key={p.id} value={p.id}>{p.sku} - {p.name} ({m.fabr.stock}: {p.stock})</option>
                         ))}
                       </select>
+                      {stockErrors[i] && <p className="mt-1 text-xs text-red-500">{stockErrors[i]}</p>}
                     </div>
                     {!line.useSizes && (
                       <div className="w-20">
