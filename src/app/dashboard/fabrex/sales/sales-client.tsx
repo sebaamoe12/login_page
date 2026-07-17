@@ -224,8 +224,30 @@ export function SalesClient({
     CANCELLED: m.fabr.cancelled,
   };
 
+  const clientSummary = Object.entries(
+    sales.reduce<Record<string, { qty: number; total: number }>>((acc, s) => {
+      const name = s.Client?.companyName || "Sans client";
+      if (!acc[name]) acc[name] = { qty: 0, total: 0 };
+      acc[name].qty += (itemsBySaleId[s.id] || []).reduce((s2, it) => s2 + it.quantity, 0);
+      acc[name].total += Number(s.totalAmount) || 0;
+      return acc;
+    }, {})
+  ).sort((a, b) => b[1].total - a[1].total);
+
   return (
     <div className="space-y-4">
+      <div className="flex gap-4 flex-wrap">
+        {clientSummary.map(([name, data]) => (
+          <div key={name} className="rounded-lg border border-zinc-200 bg-white px-4 py-3 min-w-[200px] flex-1">
+            <p className="text-sm font-semibold text-zinc-900">{name}</p>
+            <div className="mt-1 flex gap-4 text-xs text-zinc-500">
+              <span>Qté : <strong className="text-zinc-800">{data.qty}</strong></span>
+              <span>Total HT : <strong className="text-zinc-800">{formatCurrency(data.total)}</strong></span>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="flex justify-end">
         <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-primary">
           <Plus className="h-4 w-4" /> {m.fabr.addSale}
