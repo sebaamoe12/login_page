@@ -236,16 +236,23 @@ export function SalesClient({
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-4 flex-wrap">
-        {clientSummary.map(([name, data]) => (
-          <div key={name} className="rounded-lg border border-zinc-200 bg-white px-4 py-3 min-w-[200px] flex-1">
-            <p className="text-sm font-semibold text-zinc-900">{name}</p>
-            <div className="mt-1 flex gap-4 text-xs text-zinc-500">
-              <span>Qté : <strong className="text-zinc-800">{data.qty}</strong></span>
-              <span>Total HT : <strong className="text-zinc-800">{formatCurrency(data.total)}</strong></span>
-            </div>
-          </div>
-        ))}
+      <div className="rounded-lg border border-zinc-200 bg-white">
+        <select className="input rounded-lg border-0 bg-transparent px-4 py-3 text-sm font-medium text-zinc-900" onChange={(e) => {
+          const sel = e.target;
+          if (sel.value === "__all") {
+            const allQty = clientSummary.reduce((s, [, d]) => s + d.qty, 0);
+            const allTotal = clientSummary.reduce((s, [, d]) => s + d.total, 0);
+            sel.options[sel.selectedIndex].text = `Tous les clients — Qté: ${allQty} — Total HT: ${formatCurrency(allTotal)}`;
+          } else {
+            const data = clientSummary.find(([n]) => n === sel.value)?.[1];
+            if (data) sel.options[sel.selectedIndex].text = `${sel.value} — Qté: ${data.qty} — Total HT: ${formatCurrency(data.total)}`;
+          }
+        }}>
+          <option value="__all">Tous les clients — Qté: {clientSummary.reduce((s, [, d]) => s + d.qty, 0)} — Total HT: {formatCurrency(clientSummary.reduce((s, [, d]) => s + d.total, 0))}</option>
+          {clientSummary.map(([name, data]) => (
+            <option key={name} value={name}>{name} — Qté: {data.qty} — Total HT: {formatCurrency(data.total)}</option>
+          ))}
+        </select>
       </div>
 
       <div className="flex justify-end">
