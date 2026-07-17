@@ -234,25 +234,55 @@ export function SalesClient({
     }, {})
   ).sort((a, b) => b[1].total - a[1].total);
 
+  const allQty = clientSummary.reduce((s, [, d]) => s + d.qty, 0);
+  const allTotal = clientSummary.reduce((s, [, d]) => s + d.total, 0);
+  const [selectedClient, setSelectedClient] = useState("__all");
+  const summaryData = selectedClient === "__all"
+    ? { name: "Tous les clients", qty: allQty, total: allTotal }
+    : clientSummary.find(([n]) => n === selectedClient)?.[1]
+    ? { name: selectedClient, qty: clientSummary.find(([n]) => n === selectedClient)![1].qty, total: clientSummary.find(([n]) => n === selectedClient)![1].total }
+    : { name: "Tous les clients", qty: allQty, total: allTotal };
+
   return (
     <div className="space-y-4">
-      <div className="rounded-lg border border-zinc-200 bg-white">
-        <select className="input rounded-lg border-0 bg-transparent px-4 py-3 text-sm font-medium text-zinc-900" onChange={(e) => {
-          const sel = e.target;
-          if (sel.value === "__all") {
-            const allQty = clientSummary.reduce((s, [, d]) => s + d.qty, 0);
-            const allTotal = clientSummary.reduce((s, [, d]) => s + d.total, 0);
-            sel.options[sel.selectedIndex].text = `Tous les clients — Qté: ${allQty} — Total HT: ${formatCurrency(allTotal)}`;
-          } else {
-            const data = clientSummary.find(([n]) => n === sel.value)?.[1];
-            if (data) sel.options[sel.selectedIndex].text = `${sel.value} — Qté: ${data.qty} — Total HT: ${formatCurrency(data.total)}`;
-          }
-        }}>
-          <option value="__all">Tous les clients — Qté: {clientSummary.reduce((s, [, d]) => s + d.qty, 0)} — Total HT: {formatCurrency(clientSummary.reduce((s, [, d]) => s + d.total, 0))}</option>
+      <div className="relative">
+        <select
+          value={selectedClient}
+          onChange={(e) => setSelectedClient(e.target.value)}
+          className="w-full appearance-none rounded-xl border border-zinc-200 bg-white px-4 py-3.5 pr-10 text-sm font-semibold text-zinc-800 shadow-sm transition-all hover:border-zinc-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+        >
+          <option value="__all">Tous les clients — Qté: {allQty} — Total HT: {formatCurrency(allTotal)}</option>
           {clientSummary.map(([name, data]) => (
             <option key={name} value={name}>{name} — Qté: {data.qty} — Total HT: {formatCurrency(data.total)}</option>
           ))}
         </select>
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400">
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+          <div className="h-1.5 bg-indigo-500"></div>
+          <div className="p-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Client</p>
+            <p className="mt-1 text-sm font-bold text-zinc-900 truncate">{summaryData.name}</p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+          <div className="h-1.5 bg-emerald-500"></div>
+          <div className="p-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Quantité totale</p>
+            <p className="mt-1 text-2xl font-bold text-zinc-900">{summaryData.qty}</p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+          <div className="h-1.5 bg-amber-500"></div>
+          <div className="p-4">
+            <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Total HT</p>
+            <p className="mt-1 text-2xl font-bold text-zinc-900">{formatCurrency(summaryData.total)}</p>
+          </div>
+        </div>
       </div>
 
       <div className="flex justify-end">
