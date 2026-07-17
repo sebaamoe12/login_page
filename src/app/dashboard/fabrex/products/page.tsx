@@ -13,10 +13,14 @@ export default async function FabrexProductsPage() {
     .select("*")
     .order("createdAt", { ascending: false });
 
+  const { data: rawMaterials } = await supabase
+    .from("FabrexRawMaterial")
+    .select("id, name, sku");
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold text-zinc-900">{m.fabr.products}</h1>
-      <ProductsClient products={products || []} />
+      <ProductsClient products={products || []} rawMaterials={rawMaterials || []} />
     </div>
   );
 }

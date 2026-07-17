@@ -1,33 +1,50 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, PackagePlus } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { m } from "@/shared/messages";
-import { formatCurrency, FABREX_CATEGORIES } from "@/shared/constants";
+import { formatCurrency } from "@/shared/constants";
 import type { FabrexProductType } from "@/shared/types";
 
-export function ProductsClient({ products }: { products: FabrexProductType[] }) {
+export function ProductsClient({ products, rawMaterials }: { products: FabrexProductType[]; rawMaterials: { id: string; name: string; sku: string }[] }) {
   const router = useRouter();
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState<FabrexProductType | null>(null);
   const [deleteProduct, setDeleteProduct] = useState<FabrexProductType | null>(null);
+  const [showStock, setShowStock] = useState<FabrexProductType | null>(null);
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ sku: "", name: "", category: "Autres", sellingPrice: "", stock: "0" });
+  const [isNewRef, setIsNewRef] = useState(false);
+  const [form, setForm] = useState({ sku: "", name: "", category: "", sellingPrice: "", stock: "0" });
+  const [stockQty, setStockQty] = useState("1");
+
+  const uniqueRefs = rawMaterials.filter((r, i, a) => a.findIndex((x) => x.sku === r.sku) === i);
 
   const supabaseCall = async () => {
     const { createClient } = await import("@/lib/supabase/client");
     return createClient();
   };
 
-  const resetForm = () => setForm({ sku: "", name: "", category: "Autres", sellingPrice: "", stock: "0" });
+  const resetForm = () => { setForm({ sku: "", name: "", category: "", sellingPrice: "", stock: "0" }); setIsNewRef(false); };
 
   const openEdit = (p: FabrexProductType) => {
     setEditProduct(p);
     setForm({ sku: p.sku, name: p.name, category: p.category, sellingPrice: p.sellingPrice, stock: String(p.stock) });
+    setIsNewRef(false);
     setShowForm(true);
+  };
+
+  const handleRefSelect = (sku: string) => {
+    if (sku === "__new__") {
+      setIsNewRef(true);
+      setForm((prev) => ({ ...prev, sku: "", name: "", category: "" }));
+      return;
+    }
+    setIsNewRef(false);
+    const mat = rawMaterials.find((r) => r.sku === sku);
+    setForm((prev) => ({ ...prev, sku, name: mat?.name || "", category: mat?.name || "" }));
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -46,6 +63,18 @@ export function ProductsClient({ products }: { products: FabrexProductType[] }) 
       toast(m.fabr.addSuccess);
     }
     setShowForm(false); setEditProduct(null); resetForm(); setLoading(false);
+    router.refresh();
+  };
+
+  const handleAddStock = async () => {
+    if (!showStock) return;
+    setLoading(true);
+    const supabase = await supabaseCall();
+    const qty = parseInt(stockQty) || 1;
+    const { error } = await supabase.from("FabrexProduct").update({ stock: showStock.stock + qty }).eq("id", showStock.id);
+    if (error) { toast(error.message, "error"); setLoading(false); return; }
+    setShowStock(null); setStockQty("1"); setLoading(false);
+    toast(m.fabr.stockAdded);
     router.refresh();
   };
 
@@ -86,6 +115,7 @@ export function ProductsClient({ products }: { products: FabrexProductType[] }) 
                 <td className="px-4 py-3"><span className={`font-medium ${p.stock === 0 ? "font-bold text-red-600" : p.stock < 5 ? "text-red-600" : "text-zinc-900"}`}>{p.stock === 0 ? "Rupture" : p.stock}</span></td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1">
+                    <button onClick={() => { setShowStock(p); setStockQty("1"); }} className="btn-ghost btn-sm text-emerald-600"><PackagePlus className="h-3.5 w-3.5" /></button>
                     <button onClick={() => openEdit(p)} className="btn-ghost btn-sm"><Pencil className="h-3.5 w-3.5" /></button>
                     <button onClick={() => setDeleteProduct(p)} className="btn-ghost btn-sm text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
@@ -100,9 +130,21 @@ export function ProductsClient({ products }: { products: FabrexProductType[] }) 
         <Modal open={true} title={editProduct ? m.fabr.edit : m.fabr.addProduct} onClose={() => { setShowForm(false); setEditProduct(null); resetForm(); }}>
           <form onSubmit={handleSave} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div><label className="mb-1 block text-sm font-medium text-zinc-700">{m.fabr.sku}</label><input className="input" required value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} /></div>
+              {editProduct ? (
+                <div><label className="mb-1 block text-sm font-medium text-zinc-700">Réf</label><input className="input" required value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} /></div>
+              ) : isNewRef ? (
+                <div><label className="mb-1 block text-sm font-medium text-zinc-700">Réf</label><input className="input" required value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} /></div>
+              ) : (
+                <div><label className="mb-1 block text-sm font-medium text-zinc-700">Réf</label>
+                  <select className="input" value={form.sku} onChange={(e) => handleRefSelect(e.target.value)} required>
+                    <option value="">Choisir une référence...</option>
+                    {uniqueRefs.map((r) => <option key={r.id} value={r.sku}>{r.sku} — {r.name}</option>)}
+                    <option value="__new__">Nouvelle référence</option>
+                  </select>
+                </div>
+              )}
               <div><label className="mb-1 block text-sm font-medium text-zinc-700">{m.fabr.name}</label><input className="input" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-              <div><label className="mb-1 block text-sm font-medium text-zinc-700">{m.fabr.category}</label><select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{FABREX_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}</select></div>
+              <div><label className="mb-1 block text-sm font-medium text-zinc-700">{m.fabr.category}</label><input className="input" required value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} /></div>
               <div><label className="mb-1 block text-sm font-medium text-zinc-700">{m.fabr.sellingPrice} (DA)</label><input className="input" type="number" min="0" value={form.sellingPrice} onChange={(e) => setForm({ ...form, sellingPrice: e.target.value })} /></div>
               <div><label className="mb-1 block text-sm font-medium text-zinc-700">{m.fabr.stock}</label><input className="input" type="number" min="0" value={form.stock} onChange={(e) => setForm({ ...form, stock: e.target.value })} /></div>
             </div>
@@ -111,6 +153,19 @@ export function ProductsClient({ products }: { products: FabrexProductType[] }) 
               <button type="submit" disabled={loading} className="btn-primary">{loading ? m.common.loading : m.common.save}</button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {showStock && (
+        <Modal open={true} title={`${m.fabr.addStock} — ${showStock.name}`} onClose={() => { setShowStock(null); setStockQty("1"); }}>
+          <div className="space-y-4">
+            <p className="text-sm text-zinc-600">Stock actuel : <strong>{showStock.stock}</strong></p>
+            <div><label className="mb-1 block text-sm font-medium text-zinc-700">{m.fabr.stockToAdd}</label><input className="input" type="number" min="0" value={stockQty} onChange={(e) => setStockQty(e.target.value)} /></div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button onClick={() => { setShowStock(null); setStockQty("1"); }} className="btn-secondary">{m.common.cancel}</button>
+              <button onClick={handleAddStock} disabled={loading} className="btn-primary">{loading ? m.common.loading : m.fabr.addStock}</button>
+            </div>
+          </div>
         </Modal>
       )}
 
